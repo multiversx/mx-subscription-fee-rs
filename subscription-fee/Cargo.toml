@@ -10,6 +10,17 @@ path = "src/lib.rs"
 
 [dependencies.multiversx-sc]
 version = "=0.43.2"
+features = ["esdt-token-payment-legacy-decode"]
+
+[dependencies.auto-farm]
+git = "https://github.com/multiversx/mx-exchange-tools-sc"
+rev = "3664abd"
 
 [dev-dependencies.multiversx-sc-scenario]
 version = "=0.43.2"
+
+[dev-dependencies]
+num-bigint = "0.4.2"
+num-traits = "0.2"
+hex = "0.4"
+hex-literal = "0.3.4"
