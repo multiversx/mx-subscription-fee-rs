@@ -126,7 +126,7 @@ pub trait FeesModule {
         }
     }
 
-    // test
+    // test again
 
     #[view(getAcceptedFeesTokens)]
     #[storage_mapper("acceptedFeesTokens")]
