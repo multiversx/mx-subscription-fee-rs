@@ -67,12 +67,9 @@ pub trait ServiceModule: crate::fees::FeesModule {
         &self,
         service_address: ManagedAddress,
     ) -> MultiValueEncoded<ServiceInfo<Self::Api>> {
-        let service_id = self.service_id().get_id(&service_address);
-        if service_id != NULL_ID {
-            self.service_info(service_id).get().into()
-        } else {
-            MultiValueEncoded::new()
-        }
+        let service_id = self.service_id().get_id_non_zero(&service_address);
+
+        self.service_info(service_id).get().into()
     }
 
     // Might be removed if it consumes too much gas
@@ -81,22 +78,19 @@ pub trait ServiceModule: crate::fees::FeesModule {
         &self,
         service_address: ManagedAddress,
     ) -> MultiValueEncoded<ManagedAddress> {
-        let service_id = self.service_id().get_id(&service_address);
-        if service_id != NULL_ID {
-            let mapper = self.subscribed_users(service_id);
-            let nr_users = mapper.len();
-            let mut users = MultiValueEncoded::new();
-            for i in 1..=nr_users {
-                let user_id = mapper.get_by_index(i);
-                let opt_user_address = self.user_ids().get_address(user_id);
-                let user_address = unsafe { opt_user_address.unwrap_unchecked() };
-                users.push(user_address);
-            }
+        let service_id = self.service_id().get_id_non_zero(&service_address);
 
-            users
-        } else {
-            MultiValueEncoded::new()
+        let mapper = self.subscribed_users(service_id);
+        let nr_users = mapper.len();
+        let mut users = MultiValueEncoded::new();
+        for i in 1..=nr_users {
+            let user_id = mapper.get_by_index(i);
+            let opt_user_address = self.user_ids().get_address(user_id);
+            let user_address = unsafe { opt_user_address.unwrap_unchecked() };
+            users.push(user_address);
         }
+
+        users
     }
 
     #[storage_mapper("serviceId")]
