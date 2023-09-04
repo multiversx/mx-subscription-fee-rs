@@ -126,8 +126,6 @@ pub trait FeesModule {
         }
     }
 
-    // test again
-
     #[view(getAcceptedFeesTokens)]
     #[storage_mapper("acceptedFeesTokens")]
     fn accepted_fees_tokens(&self) -> UnorderedSetMapper<EgldOrEsdtTokenIdentifier>;

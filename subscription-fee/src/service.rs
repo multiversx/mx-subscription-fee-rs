@@ -3,15 +3,10 @@ use auto_farm::common::address_to_id_mapper::{AddressId, AddressToIdMapper, NULL
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode)]
-pub enum PaymentType<M: ManagedTypeApi> {
-    SpecificToken {
-        token_id: EgldOrEsdtTokenIdentifier<M>,
-        amount: BigUint<M>,
-    },
-    AnyToken {
-        amount_in_dollars: BigUint<M>,
-    },
+#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem)]
+pub struct PaymentType<M: ManagedTypeApi> {
+    pub opt_specific_token: Option<EgldOrEsdtTokenIdentifier<M>>,
+    pub amount: BigUint<M>,
 }
 
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem)]
@@ -45,11 +40,7 @@ pub trait ServiceModule: crate::fees::FeesModule {
             service_id = self.service_id().insert_new(&service_address);
         }
 
-        if let PaymentType::SpecificToken {
-            token_id,
-            amount: _,
-        } = &payment_type
-        {
+        if let Option::Some(token_id) = &payment_type.opt_specific_token {
             require!(token_id.is_valid(), "Invalid token");
         }
 
@@ -69,6 +60,43 @@ pub trait ServiceModule: crate::fees::FeesModule {
         let service_id = self.service_id().remove_by_address(&service_address);
         self.service_info(service_id).clear();
         self.subscribed_users(service_id).clear();
+    }
+
+    #[view(getServiceInfo)]
+    fn get_service_info(
+        &self,
+        service_address: ManagedAddress,
+    ) -> MultiValueEncoded<ServiceInfo<Self::Api>> {
+        let service_id = self.service_id().get_id(&service_address);
+        if service_id != NULL_ID {
+            self.service_info(service_id).get().into()
+        } else {
+            MultiValueEncoded::new()
+        }
+    }
+
+    // Might be removed if it consumes too much gas
+    #[view(getSubscribedUsers)]
+    fn get_subscribed_users(
+        &self,
+        service_address: ManagedAddress,
+    ) -> MultiValueEncoded<ManagedAddress> {
+        let service_id = self.service_id().get_id(&service_address);
+        if service_id != NULL_ID {
+            let mapper = self.subscribed_users(service_id);
+            let nr_users = mapper.len();
+            let mut users = MultiValueEncoded::new();
+            for i in 1..=nr_users {
+                let user_id = mapper.get_by_index(i);
+                let opt_user_address = self.user_ids().get_address(user_id);
+                let user_address = unsafe { opt_user_address.unwrap_unchecked() };
+                users.push(user_address);
+            }
+
+            users
+        } else {
+            MultiValueEncoded::new()
+        }
     }
 
     #[storage_mapper("serviceId")]
