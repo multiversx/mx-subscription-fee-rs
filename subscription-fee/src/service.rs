@@ -23,6 +23,18 @@ pub struct InterpretedResult<M: ManagedTypeApi> {
     pub user_rewards: ManagedVec<M, EsdtTokenPayment<M>>,
 }
 
+#[derive(TypeAbi, TopEncode, TopDecode)]
+pub enum SubscriptionType {
+    None,
+    Daily,
+    Weekly,
+    Monthly,
+}
+
+pub const DAILY_EPOCHS: u64 = 1;
+pub const WEEKLY_EPOCHS: u64 = 7;
+pub const MONTHLY_EPOCHS: u64 = 30;
+
 #[multiversx_sc::module]
 pub trait ServiceModule: crate::fees::FeesModule {
     #[only_owner]
@@ -96,6 +108,7 @@ pub trait ServiceModule: crate::fees::FeesModule {
     #[storage_mapper("serviceId")]
     fn service_id(&self) -> AddressToIdMapper<Self::Api>;
 
+    // one service may have multiple options
     #[storage_mapper("serviceInfo")]
     fn service_info(
         &self,
@@ -104,4 +117,12 @@ pub trait ServiceModule: crate::fees::FeesModule {
 
     #[storage_mapper("subscribedUsers")]
     fn subscribed_users(&self, service_id: AddressId) -> UnorderedSetMapper<AddressId>;
+
+    #[storage_mapper("subscriptionType")]
+    fn subscription_type(
+        &self,
+        user_id: AddressId,
+        service_id: AddressId,
+        service_index: usize,
+    ) -> SingleValueMapper<SubscriptionType>;
 }
