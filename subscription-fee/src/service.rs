@@ -6,7 +6,8 @@ multiversx_sc::derive_imports!();
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem)]
 pub struct PaymentType<M: ManagedTypeApi> {
     pub opt_specific_token: Option<EgldOrEsdtTokenIdentifier<M>>,
-    pub amount: BigUint<M>,
+    pub amount_for_normal: BigUint<M>,
+    pub amount_for_premium: BigUint<M>,
 }
 
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem)]
@@ -18,22 +19,12 @@ pub struct ServiceInfo<M: ManagedTypeApi> {
 }
 
 #[derive(TypeAbi, TopEncode, TopDecode)]
-pub struct InterpretedResult<M: ManagedTypeApi> {
-    pub new_token: EsdtTokenPayment<M>,
-    pub user_rewards: ManagedVec<M, EsdtTokenPayment<M>>,
-}
-
-#[derive(TypeAbi, TopEncode, TopDecode)]
 pub enum SubscriptionType {
     None,
     Daily,
     Weekly,
     Monthly,
 }
-
-pub const DAILY_EPOCHS: u64 = 1;
-pub const WEEKLY_EPOCHS: u64 = 7;
-pub const MONTHLY_EPOCHS: u64 = 30;
 
 #[multiversx_sc::module]
 pub trait ServiceModule: crate::fees::FeesModule {
@@ -55,6 +46,10 @@ pub trait ServiceModule: crate::fees::FeesModule {
         if let Option::Some(token_id) = &payment_type.opt_specific_token {
             require!(token_id.is_valid(), "Invalid token");
         }
+        require!(
+            payment_type.amount_for_normal <= payment_type.amount_for_premium,
+            "Invalid amounts"
+        );
 
         let service_info = ServiceInfo {
             payment_type,

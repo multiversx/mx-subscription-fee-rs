@@ -132,7 +132,7 @@ dependencies = [
 [[package]]
 name = "auto-farm"
 version = "0.0.0"
-source = "git+https://github.com/multiversx/mx-exchange-tools-sc?rev=3664abd#3664abd4b6e58ed45374877895dcff150e9fcb84"
+source = "git+https://github.com/multiversx/mx-exchange-tools-sc?rev=39e355f#39e355f759869473d1fab9ec4f18a8c6c9506547"
 dependencies = [
  "common_structs",
  "energy-factory",
@@ -2493,9 +2493,11 @@ name = "subscription-fee"
 version = "0.0.0"
 dependencies = [
  "auto-farm",
+ "energy-query",
  "hex",
  "hex-literal",
  "multiversx-sc",
+ "multiversx-sc-modules",
  "multiversx-sc-scenario",
  "num-bigint",
  "num-traits",

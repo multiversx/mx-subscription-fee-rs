@@ -133,12 +133,14 @@ pub trait FeesModule {
     #[storage_mapper("userToIdMapper")]
     fn user_ids(&self) -> AddressToIdMapper<Self::Api>;
 
+    #[view(getUserDepositedFees)]
     #[storage_mapper("userDepositedFees")]
     fn user_deposited_fees(
         &self,
         user_id: AddressId,
     ) -> SingleValueMapper<UniquePayments<Self::Api>>;
 
+    #[view(getUserDepositedEgld)]
     #[storage_mapper("userDepositedEgld")]
     fn user_deposited_egld(&self, user_id: AddressId) -> SingleValueMapper<BigUint>;
 }
