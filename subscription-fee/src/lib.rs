@@ -4,9 +4,11 @@ multiversx_sc::imports!();
 
 pub mod daily_operations;
 pub mod fees;
+pub mod low_level_actions;
 pub mod pair_actions;
 pub mod service;
 pub mod subscription;
+pub mod user_tokens;
 
 #[multiversx_sc::contract]
 pub trait SubscriptionFee:
@@ -15,6 +17,8 @@ pub trait SubscriptionFee:
     + subscription::SubscriptionModule
     + daily_operations::DailyOperationsModule
     + pair_actions::PairActionsModule
+    + low_level_actions::LowLevelActionsModule
+    + user_tokens::UserTokensModule
     + energy_query::EnergyQueryModule
     + multiversx_sc_modules::ongoing_operation::OngoingOperationModule
 {

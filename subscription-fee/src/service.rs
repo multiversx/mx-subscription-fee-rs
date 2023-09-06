@@ -12,9 +12,10 @@ pub struct PaymentType<M: ManagedTypeApi> {
 
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem)]
 pub struct ServiceInfo<M: ManagedTypeApi> {
+    pub sc_address: ManagedAddress<M>,
     pub payment_type: PaymentType<M>,
     pub endpoint_name: ManagedBuffer<M>,
-    pub opt_endpoint_payment: Option<EsdtTokenPayment<M>>,
+    pub opt_endpoint_payment: Option<TokenIdentifier<M>>,
     pub opt_interpret_results_endpoint: Option<ManagedBuffer<M>>,
 }
 
@@ -33,15 +34,21 @@ pub trait ServiceModule: crate::fees::FeesModule {
     fn register_service(
         &self,
         service_address: ManagedAddress,
+        sc_address: ManagedAddress,
         payment_type: PaymentType<Self::Api>,
         endpoint_name: ManagedBuffer,
-        opt_endpoint_payment: OptionalValue<EsdtTokenPayment>,
+        opt_endpoint_payment: OptionalValue<TokenIdentifier>,
         opt_interpret_results_endpoint: OptionalValue<ManagedBuffer>,
     ) {
         let mut service_id = self.service_id().get_id(&service_address);
         if service_id == NULL_ID {
             service_id = self.service_id().insert_new(&service_address);
         }
+
+        require!(
+            self.blockchain().is_smart_contract(&sc_address),
+            "Invalid address"
+        );
 
         if let Option::Some(token_id) = &payment_type.opt_specific_token {
             require!(token_id.is_valid(), "Invalid token");
@@ -52,6 +59,7 @@ pub trait ServiceModule: crate::fees::FeesModule {
         );
 
         let service_info = ServiceInfo {
+            sc_address,
             payment_type,
             endpoint_name,
             opt_endpoint_payment: opt_endpoint_payment.into_option(),

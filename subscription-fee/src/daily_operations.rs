@@ -15,34 +15,20 @@ pub const MONTHLY_EPOCHS: Epoch = 30;
 pub const FIRST_INDEX: usize = 1;
 pub const GAS_TO_SAVE_PROGRESS: u64 = 100_000;
 
-#[derive(TypeAbi, TopEncode, TopDecode)]
-pub struct InterpretedResult<M: ManagedTypeApi> {
-    pub new_token: EsdtTokenPayment<M>,
-    pub user_rewards: ManagedVec<M, EsdtTokenPayment<M>>,
-}
-
-#[derive(TypeAbi, TopEncode, TopDecode)]
+#[derive(TypeAbi, TopEncode, TopDecode, Default)]
 pub struct OperationProgress {
     pub service_id: AddressId,
     pub service_index: usize,
     pub current_index: usize,
 }
 
-impl Default for OperationProgress {
-    fn default() -> Self {
-        Self {
-            service_id: 0,
-            service_index: 0,
-            current_index: 0,
-        }
-    }
-}
-
 #[multiversx_sc::module]
 pub trait DailyOperationsModule:
     crate::fees::FeesModule
+    + crate::user_tokens::UserTokensModule
     + crate::service::ServiceModule
     + crate::pair_actions::PairActionsModule
+    + crate::low_level_actions::LowLevelActionsModule
     + energy_query::EnergyQueryModule
     + multiversx_sc_modules::ongoing_operation::OngoingOperationModule
 {
@@ -52,7 +38,7 @@ pub trait DailyOperationsModule:
         let service_id = self.service_id().get_id_non_zero(&caller);
 
         let users_mapper = self.subscribed_users(service_id);
-        let total_users = users_mapper.len();
+        let mut total_users = users_mapper.len();
         let mut progress = self.load_operation::<OperationProgress>();
         if progress.current_index == 0 {
             progress.service_id = service_id;
@@ -81,6 +67,7 @@ pub trait DailyOperationsModule:
                 Some(address) => address,
                 None => {
                     users_mapper.swap_remove(&user_id);
+                    total_users -= 1;
                     return CONTINUE_OP;
                 }
             };
@@ -113,6 +100,20 @@ pub trait DailyOperationsModule:
                 return CONTINUE_OP;
             }
 
+            let action_results = self.perform_action(user_address.clone(), user_id, &service_info);
+            if action_results.is_err() {
+                return CONTINUE_OP;
+            }
+
+            // return funds if it didn't work? - discuss
+
+            let interpreted_results = unsafe { action_results.unwrap_unchecked() };
+            if let Some(new_token) = interpreted_results.opt_new_token {
+                self.save_new_token(user_id, new_token);
+            }
+
+            self.send_user_rewards(&user_address, interpreted_results.user_rewards);
+
             self.last_action_epoch(user_id, service_id, service_index)
                 .set(current_epoch);
 
@@ -137,10 +138,11 @@ pub trait DailyOperationsModule:
                 if token_id.is_egld() {
                     return self.user_deposited_egld(user_id).update(|egld_value| {
                         if &*egld_value < amount {
-                            return Result::Err(());
+                            Result::Err(())
                         } else {
                             *egld_value -= amount;
-                            return Result::Ok(());
+
+                            Result::Ok(())
                         }
                     });
                 }
@@ -197,6 +199,24 @@ pub trait DailyOperationsModule:
             SubscriptionType::Daily => last_action_epoch + DAILY_EPOCHS,
             SubscriptionType::Weekly => last_action_epoch + WEEKLY_EPOCHS,
             SubscriptionType::Monthly => last_action_epoch + MONTHLY_EPOCHS,
+        }
+    }
+
+    fn save_new_token(&self, user_id: AddressId, new_token: EsdtTokenPayment) {
+        let mapper = self.user_deposited_tokens(user_id);
+        let mut tokens = mapper.get().into_payments();
+        tokens.push(new_token);
+
+        mapper.set(UniquePayments::new_from_unique_payments(tokens));
+    }
+
+    fn send_user_rewards(
+        &self,
+        user_address: &ManagedAddress,
+        rewards: ManagedVec<EsdtTokenPayment>,
+    ) {
+        for rew in &rewards {
+            self.send().direct_non_zero_esdt_payment(user_address, &rew);
         }
     }
 

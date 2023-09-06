@@ -32,7 +32,11 @@ pub trait FeesModule {
 
         let caller = self.blockchain().get_caller();
         let caller_id = self.user_ids().get_id_or_insert(&caller);
-        self.add_user_payment(caller_id, payment_token, payment_amount);
+        self.add_user_payment(
+            caller_id,
+            EgldOrEsdtTokenPayment::new(payment_token, 0, payment_amount),
+            self.user_deposited_fees(caller_id),
+        );
     }
 
     #[endpoint(withdrawFunds)]
@@ -100,28 +104,25 @@ pub trait FeesModule {
     fn add_user_payment(
         &self,
         caller_id: AddressId,
-        payment_token: EgldOrEsdtTokenIdentifier,
-        payment_amount: BigUint,
+        payment: EgldOrEsdtTokenPayment,
+        dest_mapper: SingleValueMapper<UniquePayments<Self::Api>>,
     ) {
-        if payment_token.is_egld() {
+        if payment.token_identifier.is_egld() {
             self.user_deposited_egld(caller_id)
-                .update(|deposited_egld| *deposited_egld += payment_amount);
+                .update(|deposited_egld| *deposited_egld += payment.amount);
 
             return;
         }
 
-        let fees_mapper = self.user_deposited_fees(caller_id);
-        if fees_mapper.is_empty() {
-            let payment = EsdtTokenPayment::new(payment_token.unwrap_esdt(), 0, payment_amount);
+        if dest_mapper.is_empty() {
             let user_fees = UniquePayments::<Self::Api>::new_from_unique_payments(
-                ManagedVec::from_single_item(payment),
+                ManagedVec::from_single_item(payment.unwrap_esdt()),
             );
 
-            fees_mapper.set(&user_fees);
+            dest_mapper.set(&user_fees);
         } else {
-            let payment = EsdtTokenPayment::new(payment_token.unwrap_esdt(), 0, payment_amount);
-            fees_mapper.update(|fees| {
-                fees.add_payment(payment);
+            dest_mapper.update(|fees| {
+                fees.add_payment(payment.unwrap_esdt());
             });
         }
     }
