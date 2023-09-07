@@ -1,5 +1,7 @@
 [workspace]
 members = [
+  "subscriber",
+  "subscriber/meta",
   "subscription-fee",
   "subscription-fee/meta",
 ]

@@ -26,7 +26,7 @@ pub trait UserTokensModule: crate::fees::FeesModule {
         );
 
         let caller = self.blockchain().get_caller();
-        let caller_id = self.user_ids().get_id_or_insert(&caller);
+        let caller_id = self.user_id().get_id_or_insert(&caller);
         self.add_user_payment(
             caller_id,
             EgldOrEsdtTokenPayment::from(payment),

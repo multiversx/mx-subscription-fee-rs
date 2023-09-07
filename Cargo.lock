@@ -2489,6 +2489,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
 
 [[package]]
+name = "subscriber"
+version = "0.0.0"
+dependencies = [
+ "auto-farm",
+ "energy-query",
+ "hex",
+ "hex-literal",
+ "multiversx-sc",
+ "multiversx-sc-modules",
+ "multiversx-sc-scenario",
+ "num-bigint",
+ "num-traits",
+ "subscription-fee",
+]
+
+[[package]]
+name = "subscriber-meta"
+version = "0.0.0"
+dependencies = [
+ "multiversx-sc-meta",
+ "subscriber",
+]
+
+[[package]]
 name = "subscription-fee"
 version = "0.0.0"
 dependencies = [

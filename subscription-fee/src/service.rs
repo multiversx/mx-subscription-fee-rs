@@ -100,7 +100,7 @@ pub trait ServiceModule: crate::fees::FeesModule {
         let mut users = MultiValueEncoded::new();
         for i in 1..=nr_users {
             let user_id = mapper.get_by_index(i);
-            let opt_user_address = self.user_ids().get_address(user_id);
+            let opt_user_address = self.user_id().get_address(user_id);
             let user_address = unsafe { opt_user_address.unwrap_unchecked() };
             users.push(user_address);
         }

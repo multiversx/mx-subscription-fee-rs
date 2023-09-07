@@ -31,7 +31,7 @@ pub trait FeesModule {
         );
 
         let caller = self.blockchain().get_caller();
-        let caller_id = self.user_ids().get_id_or_insert(&caller);
+        let caller_id = self.user_id().get_id_or_insert(&caller);
         self.add_user_payment(
             caller_id,
             EgldOrEsdtTokenPayment::new(payment_token, 0, payment_amount),
@@ -45,7 +45,7 @@ pub trait FeesModule {
         tokens_to_withdraw: MultiValueEncoded<EgldOrEsdtTokenIdentifier>,
     ) -> MultiValue2<BigUint, ManagedVec<EsdtTokenPayment>> {
         let caller = self.blockchain().get_caller();
-        let caller_id = self.user_ids().get_id_or_insert(&caller);
+        let caller_id = self.user_id().get_id_or_insert(&caller);
         require!(caller_id != NULL_ID, "Unknown user");
 
         let tokens = if tokens_to_withdraw.is_empty() {
@@ -131,8 +131,8 @@ pub trait FeesModule {
     #[storage_mapper("acceptedFeesTokens")]
     fn accepted_fees_tokens(&self) -> UnorderedSetMapper<EgldOrEsdtTokenIdentifier>;
 
-    #[storage_mapper("userToIdMapper")]
-    fn user_ids(&self) -> AddressToIdMapper<Self::Api>;
+    #[storage_mapper("userId")]
+    fn user_id(&self) -> AddressToIdMapper<Self::Api>;
 
     #[view(getUserDepositedFees)]
     #[storage_mapper("userDepositedFees")]
