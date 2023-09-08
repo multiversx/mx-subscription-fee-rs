@@ -14,8 +14,6 @@ pub struct PaymentType<M: ManagedTypeApi> {
 pub struct ServiceInfo<M: ManagedTypeApi> {
     pub sc_address: ManagedAddress<M>,
     pub payment_type: PaymentType<M>,
-    pub endpoint_name: ManagedBuffer<M>,
-    pub opt_endpoint_payment: Option<TokenIdentifier<M>>,
 }
 
 #[derive(TypeAbi, TopEncode, TopDecode)]
@@ -38,13 +36,7 @@ mod register_service_proxy {
 pub trait ServiceModule: crate::common_storage::CommonStorageModule {
     #[only_owner]
     #[endpoint(registerService)]
-    fn register_service(
-        &self,
-        sc_address: ManagedAddress,
-        payment_type: PaymentType<Self::Api>,
-        endpoint_name: ManagedBuffer,
-        opt_endpoint_payment: OptionalValue<TokenIdentifier>,
-    ) {
+    fn register_service(&self, sc_address: ManagedAddress, payment_type: PaymentType<Self::Api>) {
         let fees_contract_address = self.fees_contract_address().get();
         let service_address = self.blockchain().get_sc_address();
         let service_id = self
@@ -73,8 +65,6 @@ pub trait ServiceModule: crate::common_storage::CommonStorageModule {
         let service_info = ServiceInfo {
             sc_address,
             payment_type,
-            endpoint_name,
-            opt_endpoint_payment: opt_endpoint_payment.into_option(),
         };
         self.service_info()
             .update(|services_vec| services_vec.push(service_info));
