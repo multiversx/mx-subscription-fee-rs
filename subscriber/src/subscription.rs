@@ -28,6 +28,7 @@ pub trait SubscriptionModule:
         }
     }
 
+    // unsubscribe from the given service indexes
     #[endpoint]
     fn unsubscribe(&self, service_indexes: MultiValueEncoded<usize>) {
         let fees_contract_address = self.fees_contract_address().get();

@@ -2,7 +2,7 @@ use auto_farm::common::{address_to_id_mapper::AddressId, unique_payments::Unique
 use multiversx_sc_modules::ongoing_operation::{CONTINUE_OP, STOP_OP};
 use subscription_fee::daily_operations::{MyVeryOwnScResult, ProxyTrait as _};
 
-use crate::{service::SubscriptionType, SubscriberContract};
+use crate::{base_functions::SubscriberContract, service::SubscriptionType};
 
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
@@ -31,7 +31,10 @@ pub trait DailyOperationsModule:
     + multiversx_sc_modules::ongoing_operation::OngoingOperationModule
 {
     // #[endpoint(performService)]
-    fn perform_service<SC: SubscriberContract<SubSc = Self>>(&self, service_index: usize) -> OperationCompletionStatus {
+    fn perform_service<SC: SubscriberContract<SubSc = Self>>(
+        &self,
+        service_index: usize,
+    ) -> OperationCompletionStatus {
         let mut users_mapper = self.subscribed_users(service_index);
         let mut total_users = users_mapper.len();
         let mut progress = self.load_operation::<OperationProgress>();
@@ -95,7 +98,6 @@ pub trait DailyOperationsModule:
                 return CONTINUE_OP;
             }
 
-            // let action_results = self.perform_action(user_address.clone(), user_id, &service_info);
             let action_results = SC::perform_action(user_address.clone(), user_id, &service_info);
             if action_results.is_err() {
                 return CONTINUE_OP;

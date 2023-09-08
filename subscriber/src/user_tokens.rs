@@ -30,12 +30,11 @@ pub trait UserTokensModule: crate::common_storage::CommonStorageModule {
         let caller_id = self
             .user_id()
             .get_id_at_address_non_zero(&fees_addresss, &caller);
-        self.add_user_payment(caller_id, payment, self.user_deposited_tokens(caller_id));
+        self.add_user_payment(payment, self.user_deposited_tokens(caller_id));
     }
 
     fn add_user_payment(
         &self,
-        caller_id: AddressId,
         payment: EsdtTokenPayment,
         dest_mapper: SingleValueMapper<UniquePayments<Self::Api>>,
     ) {
@@ -65,7 +64,6 @@ pub trait UserTokensModule: crate::common_storage::CommonStorageModule {
 
         let user_tokens_mapper = self.user_deposited_tokens(caller_id);
         let mut all_user_tokens = user_tokens_mapper.get().into_payments();
-        let mut egld_amount = BigUint::zero();
         let mut output_payments = ManagedVec::new();
         for pair in tokens_to_withdraw {
             let (token_id, nonce, amount) = pair.into_tuple();

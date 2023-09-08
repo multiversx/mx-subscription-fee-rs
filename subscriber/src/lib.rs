@@ -12,7 +12,7 @@ pub mod subscription;
 pub mod user_tokens;
 
 #[multiversx_sc::contract]
-pub trait SubscriberContract:
+pub trait SubscriberContractMain:
     base_init::BaseInitModule
     + service::ServiceModule
     + daily_operations::DailyOperationsModule
