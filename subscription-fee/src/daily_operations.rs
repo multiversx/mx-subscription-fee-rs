@@ -35,18 +35,16 @@ impl<T: NestedEncode + NestedDecode + TypeAbi, E: NestedEncode + NestedDecode + 
 #[multiversx_sc::module]
 pub trait DailyOperationsModule:
     crate::fees::FeesModule
-    + crate::user_tokens::UserTokensModule
     + crate::service::ServiceModule
     + crate::pair_actions::PairActionsModule
-    + crate::low_level_actions::LowLevelActionsModule
     + multiversx_sc_modules::ongoing_operation::OngoingOperationModule
 {
     #[endpoint(subtractPayment)]
     fn subtract_payment(
         &self,
         user_id: AddressId,
-        opt_specific_token: &Option<EgldOrEsdtTokenIdentifier>,
-        amount: &BigUint,
+        opt_specific_token: Option<EgldOrEsdtTokenIdentifier>,
+        amount: BigUint,
     ) -> MyVeryOwnScResult<(), ()> {
         let caller = self.blockchain().get_caller();
         let _ = self.service_id().get_id_non_zero(&caller);
@@ -55,7 +53,7 @@ pub trait DailyOperationsModule:
             Some(token_id) => {
                 if token_id.is_egld() {
                     return self.user_deposited_egld(user_id).update(|egld_value| {
-                        if &*egld_value < amount {
+                        if *egld_value < amount {
                             MyVeryOwnScResult::Err(())
                         } else {
                             *egld_value -= amount;

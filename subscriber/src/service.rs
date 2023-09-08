@@ -1,4 +1,4 @@
-use auto_farm::common::address_to_id_mapper::AddressId;
+use auto_farm::common::address_to_id_mapper::{AddressId, NULL_ID};
 
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
@@ -16,7 +16,6 @@ pub struct ServiceInfo<M: ManagedTypeApi> {
     pub payment_type: PaymentType<M>,
     pub endpoint_name: ManagedBuffer<M>,
     pub opt_endpoint_payment: Option<TokenIdentifier<M>>,
-    pub opt_interpret_results_endpoint: Option<ManagedBuffer<M>>,
 }
 
 #[derive(TypeAbi, TopEncode, TopDecode)]
@@ -27,12 +26,72 @@ pub enum SubscriptionType {
     Monthly,
 }
 
+mod register_service_proxy {
+    #[multiversx_sc::proxy]
+    pub trait RegisterServiceProxy {
+        #[endpoint(registerService)]
+        fn register_service(&self);
+    }
+}
+
 #[multiversx_sc::module]
-pub trait ServiceModule {
+pub trait ServiceModule: crate::common_storage::CommonStorageModule {
+    #[only_owner]
+    #[endpoint(registerService)]
+    fn register_service(
+        &self,
+        service_address: ManagedAddress,
+        sc_address: ManagedAddress,
+        payment_type: PaymentType<Self::Api>,
+        endpoint_name: ManagedBuffer,
+        opt_endpoint_payment: OptionalValue<TokenIdentifier>,
+    ) {
+        let fees_contract_address = self.fees_contract_address().get();
+        let service_id = self
+            .service_id()
+            .get_id_at_address(&fees_contract_address, &service_address);
+        if service_id == NULL_ID {
+            let _: () = self
+                .register_service_proxy_obj(fees_contract_address)
+                .register_service()
+                .execute_on_dest_context();
+        }
+
+        require!(
+            self.blockchain().is_smart_contract(&sc_address),
+            "Invalid address"
+        );
+
+        if let Option::Some(token_id) = &payment_type.opt_specific_token {
+            require!(token_id.is_valid(), "Invalid token");
+        }
+        require!(
+            payment_type.amount_for_normal <= payment_type.amount_for_premium,
+            "Invalid amounts"
+        );
+
+        let service_info = ServiceInfo {
+            sc_address,
+            payment_type,
+            endpoint_name,
+            opt_endpoint_payment: opt_endpoint_payment.into_option(),
+        };
+        self.service_info()
+            .update(|services_vec| services_vec.push(service_info));
+    }
+
+    #[proxy]
+    fn register_service_proxy_obj(
+        &self,
+        sc_address: ManagedAddress,
+    ) -> register_service_proxy::Proxy<Self::Api>;
+
     // one service may have multiple options
+    #[view(getServiceInfo)]
     #[storage_mapper("serviceInfo")]
     fn service_info(&self) -> SingleValueMapper<ManagedVec<ServiceInfo<Self::Api>>>;
 
+    #[view(getSubscribedUsers)]
     #[storage_mapper("subscribedUsers")]
     fn subscribed_users(&self, service_index: usize) -> UnorderedSetMapper<AddressId>;
 

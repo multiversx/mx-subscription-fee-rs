@@ -23,7 +23,11 @@ pub trait SubscriberContractMain:
     + multiversx_sc_modules::ongoing_operation::OngoingOperationModule
 {
     #[init]
-    fn init(&self, fees_contract_address: ManagedAddress) {
-        self.base_init(fees_contract_address);
+    fn init(
+        &self,
+        fees_contract_address: ManagedAddress,
+        accepted_tokens: MultiValueEncoded<TokenIdentifier>,
+    ) {
+        self.base_init(fees_contract_address, accepted_tokens);
     }
 }

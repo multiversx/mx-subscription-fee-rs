@@ -91,8 +91,8 @@ pub trait DailyOperationsModule:
             let subtract_result = self.subtract_payment(
                 fees_contract_address.clone(),
                 user_id,
-                &service_info.payment_type.opt_specific_token,
-                &payment_amount,
+                service_info.payment_type.opt_specific_token.clone(),
+                payment_amount,
             );
             if subtract_result.is_err() {
                 return CONTINUE_OP;
@@ -129,8 +129,8 @@ pub trait DailyOperationsModule:
         &self,
         fee_contract_address: ManagedAddress,
         user_id: AddressId,
-        opt_specific_token: &Option<EgldOrEsdtTokenIdentifier>,
-        amount: &BigUint,
+        opt_specific_token: Option<EgldOrEsdtTokenIdentifier>,
+        amount: BigUint,
     ) -> MyVeryOwnScResult<(), ()> {
         self.fee_contract_proxy_obj(fee_contract_address)
             .subtract_payment(user_id, opt_specific_token, amount)

@@ -1,5 +1,5 @@
 use auto_farm::common::{
-    address_to_id_mapper::{AddressId, AddressToIdMapper, NULL_ID},
+    address_to_id_mapper::{AddressId, AddressToIdMapper},
     unique_payments::UniquePayments,
 };
 
@@ -42,32 +42,19 @@ pub trait FeesModule {
     #[endpoint(withdrawFunds)]
     fn withdraw_funds(
         &self,
-        tokens_to_withdraw: MultiValueEncoded<EgldOrEsdtTokenIdentifier>,
+        tokens_to_withdraw: MultiValueEncoded<MultiValue2<EgldOrEsdtTokenIdentifier, BigUint>>,
     ) -> MultiValue2<BigUint, ManagedVec<EsdtTokenPayment>> {
         let caller = self.blockchain().get_caller();
-        let caller_id = self.user_id().get_id_or_insert(&caller);
-        require!(caller_id != NULL_ID, "Unknown user");
-
-        let tokens = if tokens_to_withdraw.is_empty() {
-            let mapper = self.accepted_fees_tokens();
-            let total_tokens = mapper.len();
-            let mut all_tokens = ManagedVec::new();
-            for i in 1..=total_tokens {
-                let token_at_index = mapper.get_by_index(i);
-                all_tokens.push(token_at_index);
-            }
-
-            all_tokens
-        } else {
-            tokens_to_withdraw.to_vec()
-        };
+        let caller_id = self.user_id().get_id_non_zero(&caller);
 
         let user_fees_mapper = self.user_deposited_fees(caller_id);
         let mut all_user_tokens = user_fees_mapper.get().into_payments();
         let mut egld_amount = BigUint::zero();
         let mut output_payments = ManagedVec::new();
-        for token in &tokens {
-            if token.is_egld() {
+        for pair in tokens_to_withdraw {
+            let (token_id, amount) = pair.into_tuple();
+
+            if token_id.is_egld() {
                 let user_egld_amount = self.user_deposited_egld(caller_id).take();
                 if user_egld_amount > 0 {
                     self.send().direct_egld(&caller, &user_egld_amount);
@@ -77,18 +64,26 @@ pub trait FeesModule {
                 continue;
             }
 
-            let token_id = token.unwrap_esdt();
             let mut opt_found_token_index = None;
             for (index, user_token) in all_user_tokens.iter().enumerate() {
-                if user_token.token_identifier == token_id && user_token.amount > 0 {
+                if user_token.token_identifier == token_id && user_token.amount >= amount {
                     output_payments.push(user_token);
                     opt_found_token_index = Some(index);
                     break;
                 }
             }
 
-            if let Some(index) = opt_found_token_index {
-                all_user_tokens.remove(index)
+            if opt_found_token_index.is_none() {
+                continue;
+            }
+
+            let token_index = unsafe { opt_found_token_index.unwrap_unchecked() };
+            let mut token_info = all_user_tokens.get(token_index);
+            if token_info.amount == amount {
+                all_user_tokens.remove(token_index);
+            } else {
+                token_info.amount -= amount;
+                let _ = all_user_tokens.set(token_index, &token_info);
             }
         }
 

@@ -4,10 +4,8 @@ multiversx_sc::imports!();
 
 pub mod daily_operations;
 pub mod fees;
-pub mod low_level_actions;
 pub mod pair_actions;
 pub mod service;
-pub mod user_tokens;
 
 #[multiversx_sc::contract]
 pub trait SubscriptionFee:
@@ -15,8 +13,6 @@ pub trait SubscriptionFee:
     + service::ServiceModule
     + daily_operations::DailyOperationsModule
     + pair_actions::PairActionsModule
-    + low_level_actions::LowLevelActionsModule
-    + user_tokens::UserTokensModule
     + multiversx_sc_modules::ongoing_operation::OngoingOperationModule
 {
     /// Price query address: The address to gather the token to USDC price
