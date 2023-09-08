@@ -33,7 +33,7 @@ impl<T: NestedEncode + NestedDecode + TypeAbi, E: NestedEncode + NestedDecode + 
 }
 
 #[multiversx_sc::module]
-pub trait DailyOperationsModule:
+pub trait SubtractPaymentsModule:
     crate::fees::FeesModule
     + crate::service::ServiceModule
     + crate::pair_actions::PairActionsModule

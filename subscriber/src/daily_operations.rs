@@ -1,6 +1,6 @@
 use auto_farm::common::{address_to_id_mapper::AddressId, unique_payments::UniquePayments};
 use multiversx_sc_modules::ongoing_operation::{CONTINUE_OP, STOP_OP};
-use subscription_fee::daily_operations::{MyVeryOwnScResult, ProxyTrait as _};
+use subscription_fee::subtract_payments::{MyVeryOwnScResult, ProxyTrait as _};
 
 use crate::{base_functions::SubscriberContract, service::SubscriptionType};
 

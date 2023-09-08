@@ -2,16 +2,16 @@
 
 multiversx_sc::imports!();
 
-pub mod daily_operations;
 pub mod fees;
 pub mod pair_actions;
 pub mod service;
+pub mod subtract_payments;
 
 #[multiversx_sc::contract]
 pub trait SubscriptionFee:
     fees::FeesModule
     + service::ServiceModule
-    + daily_operations::DailyOperationsModule
+    + subtract_payments::SubtractPaymentsModule
     + pair_actions::PairActionsModule
     + multiversx_sc_modules::ongoing_operation::OngoingOperationModule
 {
