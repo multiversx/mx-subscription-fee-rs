@@ -40,13 +40,13 @@ pub trait ServiceModule: crate::common_storage::CommonStorageModule {
     #[endpoint(registerService)]
     fn register_service(
         &self,
-        service_address: ManagedAddress,
         sc_address: ManagedAddress,
         payment_type: PaymentType<Self::Api>,
         endpoint_name: ManagedBuffer,
         opt_endpoint_payment: OptionalValue<TokenIdentifier>,
     ) {
         let fees_contract_address = self.fees_contract_address().get();
+        let service_address = self.blockchain().get_sc_address();
         let service_id = self
             .service_id()
             .get_id_at_address(&fees_contract_address, &service_address);

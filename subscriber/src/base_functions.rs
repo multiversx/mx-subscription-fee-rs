@@ -19,10 +19,13 @@ pub struct InterpretedResult<M: ManagedTypeApi> {
 
 pub trait SubscriberContract {
     type SubSc: AllBaseTraits;
+    type AdditionalDataType;
 
     fn perform_action(
+        sc: &Self::SubSc,
         user_address: ManagedAddress<<Self::SubSc as ContractBase>::Api>,
         user_id: AddressId,
         service_info: &ServiceInfo<<Self::SubSc as ContractBase>::Api>,
+        additional_data: &<Self as SubscriberContract>::AdditionalDataType,
     ) -> Result<InterpretedResult<<Self::SubSc as ContractBase>::Api>, ()>;
 }

@@ -34,6 +34,7 @@ pub trait DailyOperationsModule:
     fn perform_service<SC: SubscriberContract<SubSc = Self>>(
         &self,
         service_index: usize,
+        additional_data: SC::AdditionalDataType,
     ) -> OperationCompletionStatus {
         let mut users_mapper = self.subscribed_users(service_index);
         let mut total_users = users_mapper.len();
@@ -98,7 +99,13 @@ pub trait DailyOperationsModule:
                 return CONTINUE_OP;
             }
 
-            let action_results = SC::perform_action(user_address.clone(), user_id, &service_info);
+            let action_results = SC::perform_action(
+                self,
+                user_address.clone(),
+                user_id,
+                &service_info,
+                &additional_data,
+            );
             if action_results.is_err() {
                 return CONTINUE_OP;
             }
