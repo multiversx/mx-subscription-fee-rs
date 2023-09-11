@@ -21,7 +21,7 @@ mod claim_metaboding_mod {
     }
 }
 
-#[derive(ManagedVecItem)]
+#[derive(ManagedVecItem, Clone)]
 pub struct AdditionalMetabodingData<M: ManagedTypeApi> {
     pub week: Week,
     pub user_delegation_amount: BigUint<M>,
@@ -35,18 +35,16 @@ pub trait ClaimMetabondingModule {
         &self,
         metaboding_address: ManagedAddress,
         user_address: ManagedAddress,
-        claim_args: &ManagedVec<AdditionalMetabodingData<Self::Api>>,
+        claim_args: &AdditionalMetabodingData<Self::Api>,
     ) -> PaymentsVec<Self::Api> {
         let mut raw_claim_args = MultiValueEncoded::new();
-        for claim_arg in claim_args {
-            let raw_arg = (
-                claim_arg.week,
-                claim_arg.user_delegation_amount,
-                claim_arg.user_lkmex_staked_amount,
-                claim_arg.signature,
-            );
-            raw_claim_args.push(raw_arg.into());
-        }
+        let raw_arg = (
+            claim_args.week,
+            claim_args.user_delegation_amount.clone(),
+            claim_args.user_lkmex_staked_amount.clone(),
+            claim_args.signature.clone(),
+        );
+        raw_claim_args.push(raw_arg.into());
 
         self.metaboding_proxy_obj(metaboding_address)
             .claim_rewards(user_address, raw_claim_args)

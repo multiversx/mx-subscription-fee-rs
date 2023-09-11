@@ -1,3 +1,5 @@
+use core::borrow::Borrow;
+
 use auto_farm::common::{address_to_id_mapper::AddressId, unique_payments::UniquePayments};
 use multiversx_sc_modules::ongoing_operation::{CONTINUE_OP, STOP_OP};
 use subscription_fee::subtract_payments::{MyVeryOwnScResult, ProxyTrait as _};
@@ -20,6 +22,7 @@ pub const GAS_TO_SAVE_PROGRESS: u64 = 100_000;
 pub struct OperationProgress {
     pub service_index: usize,
     pub current_index: usize,
+    pub additional_data_index: usize,
 }
 
 #[multiversx_sc::module]
@@ -30,18 +33,19 @@ pub trait DailyOperationsModule:
     + energy_query::EnergyQueryModule
     + multiversx_sc_modules::ongoing_operation::OngoingOperationModule
 {
-    // #[endpoint(performService)]
     fn perform_service<SC: SubscriberContract<SubSc = Self>>(
         &self,
         service_index: usize,
-        additional_data: SC::AdditionalDataType,
+        user_index: &mut usize,
+        additional_data: ManagedVec<SC::AdditionalDataType>,
     ) -> OperationCompletionStatus {
         let mut users_mapper = self.subscribed_users(service_index);
         let mut total_users = users_mapper.len();
         let mut progress = self.load_operation::<OperationProgress>();
         if progress.current_index == 0 {
             progress.service_index = service_index;
-            progress.current_index = FIRST_INDEX;
+            progress.current_index = *user_index;
+            progress.additional_data_index = 0;
         } else {
             require!(
                 progress.service_index == service_index,
@@ -53,11 +57,15 @@ pub trait DailyOperationsModule:
         let energy_threshold = self.energy_threshold().get();
         let service_info = self.service_info().get().get(service_index);
         let current_epoch = self.blockchain().get_block_epoch();
+        let additional_data_len = additional_data.len();
 
         let run_result = self.run_while_it_has_gas(GAS_TO_SAVE_PROGRESS, || {
-            if progress.current_index == total_users + 1 {
+            if *user_index == additional_data_len || progress.current_index == total_users + 1 {
                 return STOP_OP;
             }
+
+            let user_data = additional_data.get(*user_index);
+            *user_index += 1;
 
             let user_id = users_mapper.get_by_index(progress.current_index);
             let opt_user_address = self
@@ -104,7 +112,7 @@ pub trait DailyOperationsModule:
                 user_address.clone(),
                 user_id,
                 &service_info,
-                &additional_data,
+                user_data.borrow(),
             );
             if action_results.is_err() {
                 return CONTINUE_OP;

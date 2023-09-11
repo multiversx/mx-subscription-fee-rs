@@ -19,7 +19,7 @@ pub struct InterpretedResult<M: ManagedTypeApi> {
 
 pub trait SubscriberContract {
     type SubSc: AllBaseTraits;
-    type AdditionalDataType;
+    type AdditionalDataType: ManagedVecItem + Clone;
 
     fn perform_action(
         sc: &Self::SubSc,

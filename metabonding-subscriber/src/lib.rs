@@ -4,8 +4,10 @@ use core::marker::PhantomData;
 
 use auto_farm::common::address_to_id_mapper::AddressId;
 use claim_metaboding::AdditionalMetabodingData;
+use metabonding::claim::ClaimArgPair;
 use subscriber::{
     base_functions::{AllBaseTraits, InterpretedResult, SubscriberContract},
+    daily_operations::Epoch,
     service::ServiceInfo,
 };
 
@@ -33,6 +35,45 @@ pub trait MetabondingSubscriber:
     ) {
         self.base_init(fees_contract_address, accepted_tokens);
     }
+
+    /// Only one claim arg per user
+    #[only_owner]
+    #[endpoint(performAction)]
+    fn perform_action_endpoint(
+        &self,
+        raw_claim_args: MultiValueEncoded<ClaimArgPair<Self::Api>>,
+    ) -> OperationCompletionStatus {
+        let mut args_vec = ManagedVec::new();
+        for arg in raw_claim_args {
+            let (week, user_delegation_amount, user_lkmex_staked_amount, signature) =
+                arg.into_tuple();
+            args_vec.push(AdditionalMetabodingData {
+                week,
+                user_delegation_amount,
+                user_lkmex_staked_amount,
+                signature,
+            });
+        }
+
+        let last_action_epoch = self.last_global_action_epoch().get();
+        let current_epoch = self.blockchain().get_block_epoch();
+        let mut user_index = if last_action_epoch == current_epoch {
+            self.user_index().get()
+        } else {
+            0
+        };
+
+        let result = self.perform_service::<Wrapper<Self>>(0, &mut user_index, args_vec);
+        self.user_index().set(user_index);
+
+        result
+    }
+
+    #[storage_mapper("userIndex")]
+    fn user_index(&self) -> SingleValueMapper<usize>;
+
+    #[storage_mapper("lastGloblalActionEpoch")]
+    fn last_global_action_epoch(&self) -> SingleValueMapper<Epoch>;
 }
 
 pub struct Wrapper<T: AllBaseTraits + claim_metaboding::ClaimMetabondingModule> {
@@ -44,10 +85,7 @@ where
     T: AllBaseTraits + claim_metaboding::ClaimMetabondingModule,
 {
     type SubSc = T;
-    type AdditionalDataType = ManagedVec<
-        <Self::SubSc as ContractBase>::Api,
-        AdditionalMetabodingData<<Self::SubSc as ContractBase>::Api>,
-    >;
+    type AdditionalDataType = AdditionalMetabodingData<<Self::SubSc as ContractBase>::Api>;
 
     fn perform_action(
         sc: &Self::SubSc,
@@ -58,7 +96,7 @@ where
     ) -> Result<InterpretedResult<<Self::SubSc as ContractBase>::Api>, ()> {
         let rewards_vec = sc.claim_metaboding_rewards(
             service_info.sc_address.clone(),
-            user_address,
+            user_address.clone(),
             additional_data,
         );
         let result = InterpretedResult {
