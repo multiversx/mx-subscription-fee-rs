@@ -25,11 +25,11 @@ pub trait UserTokensModule: crate::common_storage::CommonStorageModule {
             "Invalid payment token"
         );
 
-        let fees_addresss = self.fees_contract_address().get();
+        let fees_address = self.fees_contract_address().get();
         let caller = self.blockchain().get_caller();
         let caller_id = self
             .user_id()
-            .get_id_at_address_non_zero(&fees_addresss, &caller);
+            .get_id_at_address_non_zero(&fees_address, &caller);
         self.add_user_payment(payment, self.user_deposited_tokens(caller_id));
     }
 
@@ -56,11 +56,11 @@ pub trait UserTokensModule: crate::common_storage::CommonStorageModule {
         &self,
         tokens_to_withdraw: MultiValueEncoded<MultiValue3<TokenIdentifier, u64, BigUint>>,
     ) -> ManagedVec<EsdtTokenPayment> {
-        let fees_addresss = self.fees_contract_address().get();
+        let fees_address = self.fees_contract_address().get();
         let caller = self.blockchain().get_caller();
         let caller_id = self
             .user_id()
-            .get_id_at_address_non_zero(&fees_addresss, &caller);
+            .get_id_at_address_non_zero(&fees_address, &caller);
 
         let user_tokens_mapper = self.user_deposited_tokens(caller_id);
         let mut all_user_tokens = user_tokens_mapper.get().into_payments();
