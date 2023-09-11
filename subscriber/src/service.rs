@@ -58,7 +58,7 @@ pub trait ServiceModule: crate::common_storage::CommonStorageModule {
             require!(token_id.is_valid(), "Invalid token");
         }
         require!(
-            payment_type.amount_for_normal <= payment_type.amount_for_premium,
+            payment_type.amount_for_normal >= payment_type.amount_for_premium,
             "Invalid amounts"
         );
 
