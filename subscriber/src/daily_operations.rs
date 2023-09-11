@@ -60,12 +60,14 @@ pub trait DailyOperationsModule:
         let additional_data_len = additional_data.len();
 
         let run_result = self.run_while_it_has_gas(GAS_TO_SAVE_PROGRESS, || {
-            if *user_index == additional_data_len || progress.current_index == total_users + 1 {
+            if progress.additional_data_index == additional_data_len
+                || progress.current_index == total_users + 1
+            {
                 return STOP_OP;
             }
 
             let user_data = additional_data.get(*user_index);
-            *user_index += 1;
+            progress.additional_data_index += 1;
 
             let user_id = users_mapper.get_by_index(progress.current_index);
             let opt_user_address = self
@@ -136,6 +138,8 @@ pub trait DailyOperationsModule:
         if run_result == OperationCompletionStatus::InterruptedBeforeOutOfGas {
             self.save_progress(&progress);
         }
+
+        *user_index = progress.additional_data_index;
 
         run_result
     }
