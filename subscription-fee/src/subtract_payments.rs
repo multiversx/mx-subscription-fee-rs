@@ -63,8 +63,7 @@ pub trait SubtractPaymentsModule:
                     });
                 }
 
-                let payment =
-                    EsdtTokenPayment::new(token_id.clone().unwrap_esdt(), 0, amount.clone());
+                let payment = EsdtTokenPayment::new(token_id.unwrap_esdt(), 0, amount);
                 let raw_result = self
                     .user_deposited_fees(user_id)
                     .update(|user_fees| user_fees.deduct_payment(&payment));

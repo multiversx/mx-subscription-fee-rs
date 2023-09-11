@@ -96,7 +96,7 @@ where
     ) -> Result<InterpretedResult<<Self::SubSc as ContractBase>::Api>, ()> {
         let rewards_vec = sc.claim_metaboding_rewards(
             service_info.sc_address.clone(),
-            user_address.clone(),
+            user_address,
             additional_data,
         );
         let result = InterpretedResult {

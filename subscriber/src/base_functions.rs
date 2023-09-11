@@ -21,6 +21,7 @@ pub trait SubscriberContract {
     type SubSc: AllBaseTraits;
     type AdditionalDataType: ManagedVecItem + Clone;
 
+    #[allow(clippy::result_unit_err)]
     fn perform_action(
         sc: &Self::SubSc,
         user_address: ManagedAddress<<Self::SubSc as ContractBase>::Api>,
