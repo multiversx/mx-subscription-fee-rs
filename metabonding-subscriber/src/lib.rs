@@ -65,6 +65,7 @@ pub trait MetabondingSubscriber:
 
         let result = self.perform_service::<Wrapper<Self>>(0, &mut user_index, args_vec);
         self.user_index().set(user_index);
+        self.last_global_action_epoch().set(current_epoch);
 
         result
     }
