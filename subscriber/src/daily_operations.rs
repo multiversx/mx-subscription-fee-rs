@@ -60,8 +60,8 @@ pub trait DailyOperationsModule:
         let additional_data_len = additional_data.len();
 
         let run_result = self.run_while_it_has_gas(GAS_TO_SAVE_PROGRESS, || {
-            if progress.additional_data_index == additional_data_len
-                || progress.current_index == total_users + 1
+            if progress.additional_data_index >= additional_data_len
+                || progress.current_index >= total_users + 1
             {
                 return STOP_OP;
             }
