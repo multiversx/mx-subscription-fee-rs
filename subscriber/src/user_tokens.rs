@@ -103,28 +103,6 @@ pub trait UserTokensModule: crate::common_storage::CommonStorageModule {
         output_payments
     }
 
-    fn find_token(
-        &self,
-        user_id: AddressId,
-        token_id: &TokenIdentifier,
-    ) -> Result<EsdtTokenPayment, ()> {
-        let mapper = self.user_deposited_tokens(user_id);
-        let mut user_tokens = mapper.get().into_payments();
-        for i in 0..user_tokens.len() {
-            let token = user_tokens.get(i);
-            if &token.token_identifier != token_id {
-                continue;
-            }
-
-            user_tokens.remove(i);
-            mapper.set(UniquePayments::new_from_unique_payments(user_tokens));
-
-            return Result::Ok(token);
-        }
-
-        Result::Err(())
-    }
-
     #[view(getAcceptedUserTokens)]
     #[storage_mapper("acceptedUserTokens")]
     fn accepted_user_tokens(&self) -> UnorderedSetMapper<TokenIdentifier>;
