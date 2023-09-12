@@ -129,6 +129,7 @@ pub trait UserTokensModule: crate::common_storage::CommonStorageModule {
     #[storage_mapper("acceptedUserTokens")]
     fn accepted_user_tokens(&self) -> UnorderedSetMapper<TokenIdentifier>;
 
+    #[view(getUserDepositedTokens)]
     #[storage_mapper("userDepositedTokens")]
     fn user_deposited_tokens(
         &self,
