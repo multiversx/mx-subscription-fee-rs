@@ -21,19 +21,14 @@ pub trait MetabondingSubscriber:
     + subscriber::base_init::BaseInitModule
     + subscriber::service::ServiceModule
     + subscriber::daily_operations::DailyOperationsModule
-    + subscriber::user_tokens::UserTokensModule
     + subscriber::subscription::SubscriptionModule
     + subscriber::common_storage::CommonStorageModule
     + energy_query::EnergyQueryModule
     + multiversx_sc_modules::ongoing_operation::OngoingOperationModule
 {
     #[init]
-    fn init(
-        &self,
-        fees_contract_address: ManagedAddress,
-        accepted_tokens: MultiValueEncoded<TokenIdentifier>,
-    ) {
-        self.base_init(fees_contract_address, accepted_tokens);
+    fn init(&self, fees_contract_address: ManagedAddress) {
+        self.base_init(fees_contract_address);
     }
 
     /// Only one claim arg per user
@@ -105,7 +100,6 @@ where
             additional_data,
         );
         let result = InterpretedResult {
-            opt_new_token: None,
             user_rewards: rewards_vec,
         };
 

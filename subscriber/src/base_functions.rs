@@ -6,14 +6,12 @@ multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 pub trait AllBaseTraits = crate::service::ServiceModule
-    + crate::user_tokens::UserTokensModule
     + crate::common_storage::CommonStorageModule
     + energy_query::EnergyQueryModule
     + multiversx_sc_modules::ongoing_operation::OngoingOperationModule;
 
 #[derive(TypeAbi, TopEncode, TopDecode)]
 pub struct InterpretedResult<M: ManagedTypeApi> {
-    pub opt_new_token: Option<EsdtTokenPayment<M>>,
     pub user_rewards: ManagedVec<M, EsdtTokenPayment<M>>,
 }
 

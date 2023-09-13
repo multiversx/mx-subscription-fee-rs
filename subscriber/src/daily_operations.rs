@@ -1,6 +1,6 @@
 use core::borrow::Borrow;
 
-use auto_farm::common::{address_to_id_mapper::AddressId, unique_payments::UniquePayments};
+use auto_farm::common::address_to_id_mapper::AddressId;
 use multiversx_sc_modules::ongoing_operation::{CONTINUE_OP, STOP_OP};
 use subscription_fee::subtract_payments::{MyVeryOwnScResult, ProxyTrait as _};
 
@@ -31,7 +31,6 @@ pub struct OperationProgress {
 #[multiversx_sc::module]
 pub trait DailyOperationsModule:
     crate::service::ServiceModule
-    + crate::user_tokens::UserTokensModule
     + crate::common_storage::CommonStorageModule
     + energy_query::EnergyQueryModule
     + multiversx_sc_modules::ongoing_operation::OngoingOperationModule
@@ -57,10 +56,13 @@ pub trait DailyOperationsModule:
         }
 
         let fees_contract_address = self.fees_contract_address().get();
+        let current_epoch = self.blockchain().get_block_epoch();
         let energy_threshold = self.energy_threshold().get();
         let service_info = self.service_info().get().get(service_index);
-        let current_epoch = self.blockchain().get_block_epoch();
         let additional_data_len = additional_data.len();
+
+        let mut output_egld = BigUint::zero();
+        let mut output_esdt = ManagedVec::new();
 
         let run_result = self.run_while_it_has_gas(GAS_TO_SAVE_PROGRESS, || {
             if progress.additional_data_index >= additional_data_len
@@ -105,6 +107,15 @@ pub trait DailyOperationsModule:
                 return CONTINUE_OP;
             }
 
+            let fee = unsafe { subtract_result.unwrap_unchecked() };
+            if fee.token_identifier.is_egld() {
+                output_egld += fee.amount;
+            } else {
+                let payment =
+                    EsdtTokenPayment::new(fee.token_identifier.unwrap_esdt(), 0, fee.amount);
+                output_esdt.push(payment);
+            }
+
             let action_results = SC::perform_action(
                 self,
                 user_address.clone(),
@@ -116,13 +127,7 @@ pub trait DailyOperationsModule:
                 return CONTINUE_OP;
             }
 
-            // return funds if it didn't work? - discuss
-
             let interpreted_results = unsafe { action_results.unwrap_unchecked() };
-            if let Some(new_token) = interpreted_results.opt_new_token {
-                self.save_new_token(user_id, new_token);
-            }
-
             self.send_user_rewards(&user_address, interpreted_results.user_rewards);
 
             self.last_action_epoch(user_id, service_index)
@@ -137,6 +142,14 @@ pub trait DailyOperationsModule:
 
         *user_index = progress.additional_data_index;
 
+        let caller = self.blockchain().get_caller();
+        if output_egld > 0 {
+            self.send().direct_egld(&caller, &output_egld);
+        }
+        if !output_esdt.is_empty() {
+            self.send().direct_multi(&caller, &output_esdt);
+        }
+
         run_result
     }
 
@@ -147,7 +160,7 @@ pub trait DailyOperationsModule:
         energy_threshold: &BigUint,
         payment_type: PaymentType<Self::Api>,
         fees_contract_address: ManagedAddress,
-    ) -> MyVeryOwnScResult<(), ()> {
+    ) -> MyVeryOwnScResult<EgldOrEsdtTokenPayment, ()> {
         let user_energy = self.get_energy_amount(user_address);
         let is_premium_user = &user_energy >= energy_threshold;
         let payment_amount = if is_premium_user {
@@ -170,7 +183,7 @@ pub trait DailyOperationsModule:
         user_id: AddressId,
         opt_specific_token: Option<EgldOrEsdtTokenIdentifier>,
         amount: BigUint,
-    ) -> MyVeryOwnScResult<(), ()> {
+    ) -> MyVeryOwnScResult<EgldOrEsdtTokenPayment, ()> {
         self.fee_contract_proxy_obj(fee_contract_address)
             .subtract_payment(user_id, opt_specific_token, amount)
             .execute_on_dest_context()
@@ -189,14 +202,6 @@ pub trait DailyOperationsModule:
             SubscriptionType::Weekly => last_action_epoch + WEEKLY_EPOCHS,
             SubscriptionType::Monthly => last_action_epoch + MONTHLY_EPOCHS,
         }
-    }
-
-    fn save_new_token(&self, user_id: AddressId, new_token: EsdtTokenPayment) {
-        let mapper = self.user_deposited_tokens(user_id);
-        let mut tokens = mapper.get().into_payments();
-        tokens.push(new_token);
-
-        mapper.set(UniquePayments::new_from_unique_payments(tokens));
     }
 
     fn send_user_rewards(
