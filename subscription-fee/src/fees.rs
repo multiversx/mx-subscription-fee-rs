@@ -21,8 +21,8 @@ pub trait FeesModule {
     }
 
     #[payable("*")]
-    #[endpoint(depositFees)]
-    fn deposit_fees(&self) {
+    #[endpoint]
+    fn deposit(&self) {
         let (payment_token, payment_amount) = self.call_value().egld_or_single_fungible_esdt();
         require!(payment_amount > 0, "No payment");
         require!(
