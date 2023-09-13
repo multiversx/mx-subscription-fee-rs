@@ -3,7 +3,7 @@ use auto_farm::common::address_to_id_mapper::{AddressId, NULL_ID};
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem)]
+#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem, Clone)]
 pub struct PaymentType<M: ManagedTypeApi> {
     pub opt_specific_token: Option<EgldOrEsdtTokenIdentifier<M>>,
     pub amount_for_normal: BigUint<M>,
@@ -37,6 +37,11 @@ pub trait ServiceModule: crate::common_storage::CommonStorageModule {
     #[only_owner]
     #[endpoint(registerService)]
     fn register_service(&self, sc_address: ManagedAddress, payment_type: PaymentType<Self::Api>) {
+        require!(
+            self.blockchain().is_smart_contract(&sc_address),
+            "Invalid address"
+        );
+
         let fees_contract_address = self.fees_contract_address().get();
         let service_address = self.blockchain().get_sc_address();
         let service_id = self
@@ -48,11 +53,6 @@ pub trait ServiceModule: crate::common_storage::CommonStorageModule {
                 .register_service()
                 .execute_on_dest_context();
         }
-
-        require!(
-            self.blockchain().is_smart_contract(&sc_address),
-            "Invalid address"
-        );
 
         if let Option::Some(token_id) = &payment_type.opt_specific_token {
             require!(token_id.is_valid(), "Invalid token");

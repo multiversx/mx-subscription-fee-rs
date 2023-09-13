@@ -4,7 +4,10 @@ use auto_farm::common::{address_to_id_mapper::AddressId, unique_payments::Unique
 use multiversx_sc_modules::ongoing_operation::{CONTINUE_OP, STOP_OP};
 use subscription_fee::subtract_payments::{MyVeryOwnScResult, ProxyTrait as _};
 
-use crate::{base_functions::SubscriberContract, service::SubscriptionType};
+use crate::{
+    base_functions::SubscriberContract,
+    service::{PaymentType, SubscriptionType},
+};
 
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
@@ -91,19 +94,12 @@ pub trait DailyOperationsModule:
                 return CONTINUE_OP;
             }
 
-            let user_energy = self.get_energy_amount(&user_address);
-            let is_premium_user = user_energy >= energy_threshold;
-            let payment_amount = if is_premium_user {
-                service_info.payment_type.amount_for_premium.clone()
-            } else {
-                service_info.payment_type.amount_for_normal.clone()
-            };
-
             let subtract_result = self.subtract_payment(
-                fees_contract_address.clone(),
+                &user_address,
                 user_id,
-                service_info.payment_type.opt_specific_token.clone(),
-                payment_amount,
+                &energy_threshold,
+                service_info.payment_type.clone(),
+                fees_contract_address.clone(),
             );
             if subtract_result.is_err() {
                 return CONTINUE_OP;
@@ -145,6 +141,30 @@ pub trait DailyOperationsModule:
     }
 
     fn subtract_payment(
+        &self,
+        user_address: &ManagedAddress,
+        user_id: AddressId,
+        energy_threshold: &BigUint,
+        payment_type: PaymentType<Self::Api>,
+        fees_contract_address: ManagedAddress,
+    ) -> MyVeryOwnScResult<(), ()> {
+        let user_energy = self.get_energy_amount(user_address);
+        let is_premium_user = &user_energy >= energy_threshold;
+        let payment_amount = if is_premium_user {
+            payment_type.amount_for_premium
+        } else {
+            payment_type.amount_for_normal
+        };
+
+        self.call_subtract_payment(
+            fees_contract_address,
+            user_id,
+            payment_type.opt_specific_token,
+            payment_amount,
+        )
+    }
+
+    fn call_subtract_payment(
         &self,
         fee_contract_address: ManagedAddress,
         user_id: AddressId,

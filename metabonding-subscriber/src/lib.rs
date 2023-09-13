@@ -55,19 +55,23 @@ pub trait MetabondingSubscriber:
             });
         }
 
-        let last_action_epoch = self.last_global_action_epoch().get();
         let current_epoch = self.blockchain().get_block_epoch();
-        let mut user_index = if last_action_epoch == current_epoch {
-            self.user_index().get()
-        } else {
-            0
-        };
-
+        let mut user_index = self.get_user_index(current_epoch);
         let result = self.perform_service::<Wrapper<Self>>(0, &mut user_index, args_vec);
+
         self.user_index().set(user_index);
         self.last_global_action_epoch().set(current_epoch);
 
         result
+    }
+
+    fn get_user_index(&self, current_epoch: Epoch) -> usize {
+        let last_action_epoch = self.last_global_action_epoch().get();
+        if last_action_epoch == current_epoch {
+            self.user_index().get()
+        } else {
+            0
+        }
     }
 
     #[storage_mapper("userIndex")]
