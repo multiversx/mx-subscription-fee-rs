@@ -111,23 +111,23 @@ pub trait SubtractPaymentsModule:
 
         let mut user_tokens = tokens_mapper.get().into_payments();
         for i in 0..user_tokens.len() {
-            let mut token = user_tokens.get(i);
-            let query_result = self.get_price(token.token_identifier.clone(), amount.clone());
+            let mut payment = user_tokens.get(i);
+            let query_result = self.get_price(payment.token_identifier.clone(), amount.clone());
             if query_result.is_err() {
                 continue;
             }
 
             let price = unsafe { query_result.unwrap_unchecked() };
-            if price > token.amount {
+            if price > payment.amount {
                 continue;
             }
 
-            token.amount -= &price;
-            let _ = user_tokens.set(i, &token);
+            payment.amount -= &price;
+            let _ = user_tokens.set(i, &payment);
             tokens_mapper.set(UniquePayments::new_from_unique_payments(user_tokens));
 
             return MyVeryOwnScResult::Ok(EgldOrEsdtTokenPayment::new(
-                EgldOrEsdtTokenIdentifier::esdt(token.token_identifier),
+                EgldOrEsdtTokenIdentifier::esdt(payment.token_identifier),
                 0,
                 price,
             ));
