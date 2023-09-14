@@ -1,6 +1,5 @@
 use auto_farm::common::address_to_id_mapper::AddressId;
-
-use crate::service::ServiceInfo;
+use subscription_fee::service::ServiceInfo;
 
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();

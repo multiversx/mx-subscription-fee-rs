@@ -14,6 +14,9 @@ version = "=0.43.2"
 [dependencies.subscriber]
 path = "../subscriber"
 
+[dependencies.subscription-fee]
+path = "../subscription-fee"
+
 [dependencies.auto-farm]
 git = "https://github.com/multiversx/mx-exchange-tools-sc"
 rev = "39e355f"

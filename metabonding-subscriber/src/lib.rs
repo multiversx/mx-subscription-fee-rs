@@ -8,8 +8,8 @@ use metabonding::claim::ClaimArgPair;
 use subscriber::{
     base_functions::{AllBaseTraits, InterpretedResult, SubscriberContract},
     daily_operations::Epoch,
-    service::ServiceInfo,
 };
+use subscription_fee::service::ServiceInfo;
 
 multiversx_sc::imports!();
 
@@ -21,7 +21,6 @@ pub trait MetabondingSubscriber:
     + subscriber::base_init::BaseInitModule
     + subscriber::service::ServiceModule
     + subscriber::daily_operations::DailyOperationsModule
-    + subscriber::subscription::SubscriptionModule
     + subscriber::common_storage::CommonStorageModule
     + energy_query::EnergyQueryModule
     + multiversx_sc_modules::ongoing_operation::OngoingOperationModule

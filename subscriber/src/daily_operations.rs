@@ -3,12 +3,12 @@ use core::borrow::Borrow;
 use auto_farm::common::address_to_id_mapper::AddressId;
 use multiversx_sc::api::StorageMapperApi;
 use multiversx_sc_modules::ongoing_operation::{LoopOp, CONTINUE_OP, STOP_OP};
-use subscription_fee::subtract_payments::{MyVeryOwnScResult, ProxyTrait as _};
-
-use crate::{
-    base_functions::SubscriberContract,
+use subscription_fee::{
     service::{PaymentType, ServiceInfo, SubscriptionType},
+    subtract_payments::{MyVeryOwnScResult, ProxyTrait as _},
 };
+
+use crate::base_functions::SubscriberContract;
 
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
@@ -38,6 +38,7 @@ pub struct OperationData<
     pub user_index: usize,
     pub total_users: usize,
     pub users_mapper: UnorderedSetMapper<M, AddressId>,
+    pub service_id: AddressId,
     pub service_info: ServiceInfo<M>,
     pub service_index: usize,
     pub current_epoch: Epoch,
@@ -58,7 +59,13 @@ pub trait DailyOperationsModule:
         user_index: &mut usize,
         additional_data: ManagedVec<SC::AdditionalDataType>,
     ) -> OperationCompletionStatus {
-        let users_mapper = self.subscribed_users(service_index);
+        let own_address = self.blockchain().get_sc_address();
+        let fees_contract_address = self.fees_contract_address().get();
+        let service_id = self
+            .service_id()
+            .get_id_at_address_non_zero(&fees_contract_address, &own_address);
+
+        let users_mapper = self.subscribed_users(service_id, service_index);
         let total_users = users_mapper.len();
         let mut progress = self.load_operation::<OperationProgress>();
         if progress.current_index == 0 {
@@ -78,10 +85,14 @@ pub trait DailyOperationsModule:
             user_index: *user_index,
             total_users,
             users_mapper,
-            service_info: self.service_info().get().get(service_index),
+            service_id,
+            service_info: self
+                .service_info(service_id)
+                .get_from_address(&fees_contract_address)
+                .get(service_index),
             service_index,
             current_epoch: self.blockchain().get_block_epoch(),
-            fees_contract_address: self.fees_contract_address().get(),
+            fees_contract_address,
             energy_threshold: self.energy_threshold().get(),
         };
 
@@ -146,8 +157,8 @@ pub trait DailyOperationsModule:
         progress.current_index += 1;
 
         let subscription_type = self
-            .subscription_type(user_id, all_data.service_index)
-            .get();
+            .subscription_type(all_data.service_id, user_id, all_data.service_index)
+            .get_from_address(&all_data.fees_contract_address);
         let next_action_epoch =
             self.get_next_action_epoch(user_id, all_data.service_index, subscription_type);
         if next_action_epoch > all_data.current_epoch {
