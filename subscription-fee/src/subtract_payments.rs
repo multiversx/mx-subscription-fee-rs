@@ -54,12 +54,12 @@ pub trait SubtractPaymentsModule:
             Some(token_id) => self.subtract_specific_token(user_id, token_id, amount),
             None => self.subtract_any_token(user_id, amount),
         };
-        if let MyVeryOwnScResult::Ok(token) = &subtract_result {
+        if let MyVeryOwnScResult::Ok(payment) = &subtract_result {
             self.send().direct(
                 &caller,
-                &token.token_identifier,
-                token.token_nonce,
-                &token.amount,
+                &payment.token_identifier,
+                payment.token_nonce,
+                &payment.amount,
             );
         }
 
