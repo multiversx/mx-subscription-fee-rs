@@ -16,17 +16,6 @@ pub enum MyVeryOwnScResult<
 }
 
 impl<T: NestedEncode + NestedDecode + TypeAbi, E: NestedEncode + NestedDecode + TypeAbi>
-    From<Result<T, E>> for MyVeryOwnScResult<T, E>
-{
-    fn from(value: Result<T, E>) -> Self {
-        match value {
-            Result::Ok(t) => MyVeryOwnScResult::Ok(t),
-            Result::Err(e) => MyVeryOwnScResult::Err(e),
-        }
-    }
-}
-
-impl<T: NestedEncode + NestedDecode + TypeAbi, E: NestedEncode + NestedDecode + TypeAbi>
     MyVeryOwnScResult<T, E>
 {
     pub fn is_err(&self) -> bool {
