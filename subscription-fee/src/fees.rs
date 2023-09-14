@@ -16,7 +16,7 @@ pub trait FeesModule {
         for token in accepted_tokens {
             require!(token.is_valid(), "Invalid token");
 
-            self.accepted_fees_tokens().insert(token);
+            let _ = self.accepted_fees_tokens().insert(token);
         }
     }
 
@@ -55,10 +55,13 @@ pub trait FeesModule {
             let (token_id, amount) = pair.into_tuple();
 
             if token_id.is_egld() {
-                let user_egld_amount = self.user_deposited_egld(caller_id).take();
-                if user_egld_amount > 0 {
-                    self.send().direct_egld(&caller, &user_egld_amount);
-                    egld_amount = user_egld_amount;
+                let egld_mapper = self.user_deposited_egld(caller_id);
+                let user_egld_amount = egld_mapper.get();
+                if user_egld_amount >= amount {
+                    self.send().direct_egld(&caller, &amount);
+                    egld_mapper.set(&user_egld_amount - &amount);
+
+                    egld_amount = amount;
                 }
 
                 continue;
