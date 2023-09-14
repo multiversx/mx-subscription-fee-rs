@@ -13,6 +13,7 @@ pub struct PaymentType<M: ManagedTypeApi> {
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem)]
 pub struct ServiceInfo<M: ManagedTypeApi> {
     pub sc_address: ManagedAddress<M>,
+    pub energy_threshold: BigUint<M>,
     pub payment_type: PaymentType<M>,
 }
 
@@ -26,10 +27,11 @@ pub enum SubscriptionType {
 
 #[multiversx_sc::module]
 pub trait ServiceModule: crate::fees::FeesModule {
+    /// Arguments are pairs of sc_address, energy_threshold and payment_type
     #[endpoint(registerService)]
     fn register_service(
         &self,
-        args: MultiValueEncoded<MultiValue2<ManagedAddress, PaymentType<Self::Api>>>,
+        args: MultiValueEncoded<MultiValue3<ManagedAddress, BigUint, PaymentType<Self::Api>>>,
     ) {
         require!(!args.is_empty(), "No arguments provided");
 
@@ -39,7 +41,7 @@ pub trait ServiceModule: crate::fees::FeesModule {
 
         let mut services = ManagedVec::<Self::Api, _>::new();
         for arg in args {
-            let (sc_address, payment_type) = arg.into_tuple();
+            let (sc_address, energy_threshold, payment_type) = arg.into_tuple();
 
             require!(
                 self.blockchain().is_smart_contract(&sc_address) && !sc_address.is_zero(),
@@ -59,6 +61,7 @@ pub trait ServiceModule: crate::fees::FeesModule {
 
             services.push(ServiceInfo {
                 sc_address,
+                energy_threshold,
                 payment_type,
             });
         }

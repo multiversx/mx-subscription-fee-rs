@@ -4,7 +4,7 @@ use auto_farm::common::address_to_id_mapper::AddressId;
 use multiversx_sc::api::StorageMapperApi;
 use multiversx_sc_modules::ongoing_operation::{LoopOp, CONTINUE_OP, STOP_OP};
 use subscription_fee::{
-    service::{PaymentType, ServiceInfo, SubscriptionType},
+    service::{ServiceInfo, SubscriptionType},
     subtract_payments::{MyVeryOwnScResult, ProxyTrait as _},
 };
 
@@ -43,14 +43,12 @@ pub struct OperationData<
     pub service_index: usize,
     pub current_epoch: Epoch,
     pub fees_contract_address: ManagedAddress<M>,
-    pub energy_threshold: BigUint<M>,
 }
 
 #[multiversx_sc::module]
 pub trait DailyOperationsModule:
     crate::service::ServiceModule
     + crate::common_storage::CommonStorageModule
-    + energy_query::EnergyQueryModule
     + multiversx_sc_modules::ongoing_operation::OngoingOperationModule
 {
     fn perform_service<SC: SubscriberContract<SubSc = Self>>(
@@ -66,7 +64,7 @@ pub trait DailyOperationsModule:
             .get_id_at_address_non_zero(&fees_contract_address, &own_address);
 
         let users_mapper = self.subscribed_users(service_id, service_index);
-        let total_users = users_mapper.len();
+        let total_users = users_mapper.len_at_address(&fees_contract_address);
         let mut progress = self.load_operation::<OperationProgress>();
         if progress.current_index == 0 {
             progress.service_index = service_index;
@@ -93,7 +91,6 @@ pub trait DailyOperationsModule:
             service_index,
             current_epoch: self.blockchain().get_block_epoch(),
             fees_contract_address,
-            energy_threshold: self.energy_threshold().get(),
         };
 
         let mut output_egld = BigUint::zero();
@@ -141,15 +138,15 @@ pub trait DailyOperationsModule:
         let user_data = all_data.additional_data.get(all_data.user_index);
         progress.additional_data_index += 1;
 
-        let user_id = all_data.users_mapper.get_by_index(progress.current_index);
+        let user_id = all_data
+            .users_mapper
+            .get_by_index_at_address(&all_data.fees_contract_address, progress.current_index);
         let opt_user_address = self
             .user_id()
             .get_address_at_address(&all_data.fees_contract_address, user_id);
         let user_address = match opt_user_address {
             Some(address) => address,
             None => {
-                all_data.users_mapper.swap_remove(&user_id);
-                all_data.total_users -= 1;
                 return CONTINUE_OP;
             }
         };
@@ -165,12 +162,10 @@ pub trait DailyOperationsModule:
             return CONTINUE_OP;
         }
 
-        let subtract_result = self.subtract_payment(
-            &user_address,
-            user_id,
-            &all_data.energy_threshold,
-            all_data.service_info.payment_type.clone(),
+        let subtract_result = self.call_subtract_payment(
             all_data.fees_contract_address.clone(),
+            all_data.service_index,
+            user_id,
         );
         if subtract_result.is_err() {
             return CONTINUE_OP;
@@ -204,39 +199,14 @@ pub trait DailyOperationsModule:
         CONTINUE_OP
     }
 
-    fn subtract_payment(
-        &self,
-        user_address: &ManagedAddress,
-        user_id: AddressId,
-        energy_threshold: &BigUint,
-        payment_type: PaymentType<Self::Api>,
-        fees_contract_address: ManagedAddress,
-    ) -> MyVeryOwnScResult<EgldOrEsdtTokenPayment, ()> {
-        let user_energy = self.get_energy_amount(user_address);
-        let is_premium_user = &user_energy >= energy_threshold;
-        let payment_amount = if is_premium_user {
-            payment_type.amount_for_premium
-        } else {
-            payment_type.amount_for_normal
-        };
-
-        self.call_subtract_payment(
-            fees_contract_address,
-            user_id,
-            payment_type.opt_specific_token,
-            payment_amount,
-        )
-    }
-
     fn call_subtract_payment(
         &self,
         fee_contract_address: ManagedAddress,
+        service_index: usize,
         user_id: AddressId,
-        opt_specific_token: Option<EgldOrEsdtTokenIdentifier>,
-        amount: BigUint,
     ) -> MyVeryOwnScResult<EgldOrEsdtTokenPayment, ()> {
         self.fee_contract_proxy_obj(fee_contract_address)
-            .subtract_payment(user_id, opt_specific_token, amount)
+            .subtract_payment(service_index, user_id)
             .execute_on_dest_context()
     }
 
@@ -277,7 +247,4 @@ pub trait DailyOperationsModule:
         user_id: AddressId,
         service_index: usize,
     ) -> SingleValueMapper<Epoch>;
-
-    #[storage_mapper("energyThreshold")]
-    fn energy_threshold(&self) -> SingleValueMapper<BigUint>;
 }

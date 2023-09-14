@@ -18,10 +18,6 @@ version = "=0.43.2"
 git = "https://github.com/multiversx/mx-exchange-tools-sc"
 rev = "39e355f"
 
-[dependencies.energy-query]
-git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "7f25a72"
-
 [dependencies.subscription-fee]
 path = "../subscription-fee"
 

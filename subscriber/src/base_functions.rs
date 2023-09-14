@@ -6,7 +6,6 @@ multiversx_sc::derive_imports!();
 
 pub trait AllBaseTraits = crate::service::ServiceModule
     + crate::common_storage::CommonStorageModule
-    + energy_query::EnergyQueryModule
     + multiversx_sc_modules::ongoing_operation::OngoingOperationModule;
 
 #[derive(TypeAbi, TopEncode, TopDecode)]

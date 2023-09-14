@@ -2,6 +2,8 @@ use core::hint::unreachable_unchecked;
 
 use auto_farm::common::{address_to_id_mapper::AddressId, unique_payments::UniquePayments};
 
+use crate::service::ServiceInfo;
+
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
@@ -38,21 +40,28 @@ pub trait SubtractPaymentsModule:
     crate::fees::FeesModule
     + crate::service::ServiceModule
     + crate::pair_actions::PairActionsModule
+    + energy_query::EnergyQueryModule
     + multiversx_sc_modules::ongoing_operation::OngoingOperationModule
 {
     #[endpoint(subtractPayment)]
     fn subtract_payment(
         &self,
+        service_index: usize,
         user_id: AddressId,
-        opt_specific_token: Option<EgldOrEsdtTokenIdentifier>,
-        amount: BigUint,
     ) -> MyVeryOwnScResult<EgldOrEsdtTokenPayment, ()> {
         let caller = self.blockchain().get_caller();
-        let _ = self.service_id().get_id_non_zero(&caller);
+        let service_id = self.service_id().get_id_non_zero(&caller);
 
-        let subtract_result = match opt_specific_token {
-            Some(token_id) => self.subtract_specific_token(user_id, token_id, amount),
-            None => self.subtract_any_token(user_id, amount),
+        let service_info = self.service_info(service_id).get().get(service_index);
+        let opt_cost = self.get_user_cost(user_id, &service_info);
+        if opt_cost.is_none() {
+            return MyVeryOwnScResult::Err(());
+        }
+
+        let cost = unsafe { opt_cost.unwrap_unchecked() };
+        let subtract_result = match service_info.payment_type.opt_specific_token {
+            Some(token_id) => self.subtract_specific_token(user_id, token_id, cost),
+            None => self.subtract_any_token(user_id, cost),
         };
         if let MyVeryOwnScResult::Ok(payment) = &subtract_result {
             self.send().direct(
@@ -64,6 +73,23 @@ pub trait SubtractPaymentsModule:
         }
 
         subtract_result
+    }
+
+    fn get_user_cost(
+        &self,
+        user_id: AddressId,
+        service_info: &ServiceInfo<Self::Api>,
+    ) -> Option<BigUint> {
+        let opt_user_address = self.user_id().get_address(user_id);
+        let user_address = opt_user_address?;
+        let user_energy = self.get_energy_amount(&user_address);
+        let cost = if user_energy >= service_info.energy_threshold {
+            service_info.payment_type.amount_for_premium.clone()
+        } else {
+            service_info.payment_type.amount_for_normal.clone()
+        };
+
+        Some(cost)
     }
 
     fn subtract_specific_token(

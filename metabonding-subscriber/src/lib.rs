@@ -22,7 +22,6 @@ pub trait MetabondingSubscriber:
     + subscriber::service::ServiceModule
     + subscriber::daily_operations::DailyOperationsModule
     + subscriber::common_storage::CommonStorageModule
-    + energy_query::EnergyQueryModule
     + multiversx_sc_modules::ongoing_operation::OngoingOperationModule
 {
     #[init]

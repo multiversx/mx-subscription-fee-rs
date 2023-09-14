@@ -13,6 +13,7 @@ pub trait SubscriptionFee:
     + service::ServiceModule
     + subtract_payments::SubtractPaymentsModule
     + pair_actions::PairActionsModule
+    + energy_query::EnergyQueryModule
     + multiversx_sc_modules::ongoing_operation::OngoingOperationModule
 {
     /// Price query address: The address to gather the token to USDC price

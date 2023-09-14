@@ -5,11 +5,12 @@ multiversx_sc::derive_imports!();
 
 #[multiversx_sc::module]
 pub trait ServiceModule: crate::common_storage::CommonStorageModule {
+    /// Arguments are pairs of sc_address, energy_threshold and payment_type
     #[only_owner]
     #[endpoint(registerService)]
     fn register_service(
         &self,
-        args: MultiValueEncoded<MultiValue2<ManagedAddress, PaymentType<Self::Api>>>,
+        args: MultiValueEncoded<MultiValue3<ManagedAddress, BigUint, PaymentType<Self::Api>>>,
     ) {
         let fees_contract_address = self.fees_contract_address().get();
         let _: () = self

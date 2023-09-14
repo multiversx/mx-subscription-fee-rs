@@ -1532,7 +1532,6 @@ name = "metabonding-subscriber"
 version = "0.0.0"
 dependencies = [
  "auto-farm",
- "energy-query",
  "metabonding 0.0.0 (git+https://github.com/multiversx/mx-metabonding-sc?rev=cec34aa)",
  "multiversx-sc",
  "multiversx-sc-modules",
@@ -2525,7 +2524,6 @@ name = "subscriber"
 version = "0.0.0"
 dependencies = [
  "auto-farm",
- "energy-query",
  "hex",
  "hex-literal",
  "multiversx-sc",

@@ -15,7 +15,6 @@ pub trait SubscriberContractMain:
     + service::ServiceModule
     + daily_operations::DailyOperationsModule
     + common_storage::CommonStorageModule
-    + energy_query::EnergyQueryModule
     + multiversx_sc_modules::ongoing_operation::OngoingOperationModule
 {
     #[init]
