@@ -50,7 +50,7 @@ pub trait MetabondingSubscriber:
 
         let current_epoch = self.blockchain().get_block_epoch();
         let mut user_index = self.get_user_index(current_epoch);
-        let result = self.perform_service::<Wrapper<Self>>(0, &mut user_index, args_vec);
+        let result = self.perform_service::<MetabondingWrapper<Self>>(0, &mut user_index, args_vec);
 
         self.user_index().set(user_index);
         self.last_global_action_epoch().set(current_epoch);
@@ -74,11 +74,11 @@ pub trait MetabondingSubscriber:
     fn last_global_action_epoch(&self) -> SingleValueMapper<Epoch>;
 }
 
-pub struct Wrapper<T: AllBaseTraits + claim_metaboding::ClaimMetabondingModule> {
+pub struct MetabondingWrapper<T: AllBaseTraits + claim_metaboding::ClaimMetabondingModule> {
     _phantom: PhantomData<T>,
 }
 
-impl<T> SubscriberContract for Wrapper<T>
+impl<T> SubscriberContract for MetabondingWrapper<T>
 where
     T: AllBaseTraits + claim_metaboding::ClaimMetabondingModule,
 {
