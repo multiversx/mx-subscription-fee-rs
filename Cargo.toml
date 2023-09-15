@@ -1,5 +1,9 @@
 [workspace]
 members = [
+  "metabonding-subscriber",
+  "metabonding-subscriber/meta",
+  "subscriber",
+  "subscriber/meta",
   "subscription-fee",
   "subscription-fee/meta",
 ]
