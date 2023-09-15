@@ -3,18 +3,11 @@ use auto_farm::common::address_to_id_mapper::{AddressId, AddressToIdMapper, NULL
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem, Clone)]
-pub struct PaymentType<M: ManagedTypeApi> {
-    pub opt_specific_token: Option<EgldOrEsdtTokenIdentifier<M>>,
-    pub amount_for_normal: BigUint<M>,
-    pub amount_for_premium: BigUint<M>,
-}
-
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem)]
 pub struct ServiceInfo<M: ManagedTypeApi> {
     pub sc_address: ManagedAddress<M>,
-    pub energy_threshold: BigUint<M>,
-    pub payment_type: PaymentType<M>,
+    pub opt_payment_token: Option<EgldOrEsdtTokenIdentifier<M>>,
+    pub amount: BigUint<M>,
 }
 
 #[derive(TypeAbi, TopEncode, TopDecode)]
@@ -27,11 +20,13 @@ pub enum SubscriptionType {
 
 #[multiversx_sc::module]
 pub trait ServiceModule: crate::fees::FeesModule {
-    /// Arguments are pairs of sc_address, energy_threshold and payment_type
+    /// Arguments are pairs of sc_address, opt_payment_token and payment_amount
     #[endpoint(registerService)]
     fn register_service(
         &self,
-        args: MultiValueEncoded<MultiValue3<ManagedAddress, BigUint, PaymentType<Self::Api>>>,
+        args: MultiValueEncoded<
+            MultiValue3<ManagedAddress, Option<EgldOrEsdtTokenIdentifier>, BigUint>,
+        >,
     ) {
         require!(!args.is_empty(), "No arguments provided");
 
@@ -41,18 +36,13 @@ pub trait ServiceModule: crate::fees::FeesModule {
 
         let mut services = ManagedVec::<Self::Api, _>::new();
         for arg in args {
-            let (sc_address, energy_threshold, payment_type) = arg.into_tuple();
-
+            let (sc_address, opt_payment_token, amount) = arg.into_tuple();
             require!(
                 self.blockchain().is_smart_contract(&sc_address) && !sc_address.is_zero(),
                 "Invalid SC address"
             );
-            require!(
-                payment_type.amount_for_normal >= payment_type.amount_for_premium,
-                "Invalid amounts"
-            );
 
-            if let Some(token_id) = &payment_type.opt_specific_token {
+            if let Some(token_id) = &opt_payment_token {
                 require!(
                     self.accepted_fees_tokens().contains(token_id),
                     "Invalid token ID"
@@ -61,8 +51,8 @@ pub trait ServiceModule: crate::fees::FeesModule {
 
             services.push(ServiceInfo {
                 sc_address,
-                energy_threshold,
-                payment_type,
+                opt_payment_token,
+                amount,
             });
         }
 

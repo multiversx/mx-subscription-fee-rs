@@ -183,6 +183,7 @@ pub trait DailyOperationsModule:
             self,
             user_address.clone(),
             user_id,
+            all_data.service_index,
             &all_data.service_info,
             user_data.borrow(),
         );

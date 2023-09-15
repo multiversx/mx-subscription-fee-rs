@@ -25,5 +25,9 @@ rev = "39e355f"
 git = "https://github.com/multiversx/mx-metabonding-sc"
 rev = "cec34aa"
 
+[dependencies.energy-query]
+git = "https://github.com/multiversx/mx-exchange-sc"
+rev = "7f25a72"
+
 [dev-dependencies.multiversx-sc-scenario]
 version = "=0.43.2"

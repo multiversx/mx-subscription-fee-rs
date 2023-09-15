@@ -1,16 +1,18 @@
-use subscription_fee::service::{PaymentType, ProxyTrait as _};
+use subscription_fee::service::ProxyTrait as _;
 
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 #[multiversx_sc::module]
 pub trait ServiceModule: crate::common_storage::CommonStorageModule {
-    /// Arguments are pairs of sc_address, energy_threshold and payment_type
+    /// Arguments are pairs of sc_address, opt_payment_token and payment_amount
     #[only_owner]
     #[endpoint(registerService)]
     fn register_service(
         &self,
-        args: MultiValueEncoded<MultiValue3<ManagedAddress, BigUint, PaymentType<Self::Api>>>,
+        args: MultiValueEncoded<
+            MultiValue3<ManagedAddress, Option<EgldOrEsdtTokenIdentifier>, BigUint>,
+        >,
     ) {
         let fees_contract_address = self.fees_contract_address().get();
         let _: () = self
