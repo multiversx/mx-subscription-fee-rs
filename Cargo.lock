@@ -2555,6 +2555,8 @@ dependencies = [
  "multiversx-sc-scenario",
  "num-bigint",
  "num-traits",
+ "pair",
+ "pausable",
 ]
 
 [[package]]

@@ -61,7 +61,7 @@ pub trait SubtractPaymentsModule:
             .subscription_type(service_id, user_id, service_index)
             .get();
         let next_action_epoch =
-            self.get_next_action_epoch(user_id, service_index, subscription_type);
+            self.get_next_action_epoch(user_id, service_id, service_index, subscription_type);
         let current_epoch = self.blockchain().get_block_epoch();
         if next_action_epoch > current_epoch {
             return MyVeryOwnScResult::Err(());
@@ -86,7 +86,7 @@ pub trait SubtractPaymentsModule:
             );
         }
 
-        self.last_action_epoch(user_id, service_index)
+        self.last_action_epoch(user_id, service_id, service_index)
             .set(current_epoch);
 
         subtract_result
@@ -165,10 +165,13 @@ pub trait SubtractPaymentsModule:
     fn get_next_action_epoch(
         &self,
         user_id: AddressId,
+        service_id: AddressId,
         service_index: usize,
         subscription_type: SubscriptionType,
     ) -> Epoch {
-        let last_action_epoch = self.last_action_epoch(user_id, service_index).get();
+        let last_action_epoch = self
+            .last_action_epoch(user_id, service_id, service_index)
+            .get();
         match subscription_type {
             SubscriptionType::None => sc_panic!("Unexpected value"),
             SubscriptionType::Daily => last_action_epoch + DAILY_EPOCHS,
@@ -181,6 +184,7 @@ pub trait SubtractPaymentsModule:
     fn last_action_epoch(
         &self,
         user_id: AddressId,
+        service_id: AddressId,
         service_index: usize,
     ) -> SingleValueMapper<Epoch>;
 }

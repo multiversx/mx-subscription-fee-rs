@@ -61,7 +61,7 @@ pub trait FeesModule {
                     self.send().direct_egld(&caller, &amount);
                     egld_mapper.set(&user_egld_amount - &amount);
 
-                    egld_amount = amount;
+                    egld_amount += amount;
                 }
 
                 continue;
