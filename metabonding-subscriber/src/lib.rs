@@ -5,11 +5,8 @@ use core::marker::PhantomData;
 use auto_farm::common::address_to_id_mapper::AddressId;
 use claim_metaboding::AdditionalMetabodingData;
 use metabonding::claim::ClaimArgPair;
-use subscriber::{
-    base_functions::{AllBaseTraits, InterpretedResult, SubscriberContract},
-    daily_operations::Epoch,
-};
-use subscription_fee::service::ServiceInfo;
+use subscriber::base_functions::{AllBaseTraits, InterpretedResult, SubscriberContract};
+use subscription_fee::{service::ServiceInfo, subtract_payments::Epoch};
 
 multiversx_sc::imports!();
 
