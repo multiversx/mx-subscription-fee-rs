@@ -111,6 +111,9 @@ pub trait ServiceModule: crate::fees::FeesModule {
 
             self.subscription_type(caller_id, service_id, service_index)
                 .set(subscription_type);
+            let _ = self
+                .subscribed_users(service_id, service_index)
+                .insert(caller_id);
         }
     }
 
@@ -130,6 +133,9 @@ pub trait ServiceModule: crate::fees::FeesModule {
 
             self.subscription_type(caller_id, service_id, service_index)
                 .clear();
+            let _ = self
+                .subscribed_users(service_id, service_index)
+                .swap_remove(&caller_id);
         }
     }
 

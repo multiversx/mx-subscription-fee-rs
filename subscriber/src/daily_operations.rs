@@ -99,7 +99,7 @@ pub trait DailyOperationsModule:
             self.save_progress(&progress);
         }
 
-        *user_index = progress.additional_data_index;
+        *user_index = progress.current_index;
 
         let caller = self.blockchain().get_caller();
         if output_egld > 0 {
@@ -125,7 +125,7 @@ pub trait DailyOperationsModule:
             return STOP_OP;
         }
 
-        let user_data = all_data.additional_data.get(all_data.user_index);
+        let user_data = all_data.additional_data.get(progress.additional_data_index);
         progress.additional_data_index += 1;
 
         let user_id = all_data
@@ -204,7 +204,7 @@ pub trait DailyOperationsModule:
         if last_action_epoch == current_epoch {
             self.user_index().get()
         } else {
-            0
+            1
         }
     }
 
