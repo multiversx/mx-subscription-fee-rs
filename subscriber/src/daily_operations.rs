@@ -4,7 +4,7 @@ use auto_farm::common::address_to_id_mapper::AddressId;
 use multiversx_sc::api::StorageMapperApi;
 use multiversx_sc_modules::ongoing_operation::{LoopOp, CONTINUE_OP, STOP_OP};
 use subscription_fee::{
-    service::{ServiceInfo, SubscriptionType},
+    service::ServiceInfo,
     subtract_payments::{MyVeryOwnScResult, ProxyTrait as _},
 };
 
@@ -12,12 +12,6 @@ use crate::base_functions::SubscriberContract;
 
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
-
-pub type Epoch = u64;
-
-pub const DAILY_EPOCHS: Epoch = 1;
-pub const WEEKLY_EPOCHS: Epoch = 7;
-pub const MONTHLY_EPOCHS: Epoch = 30;
 
 pub const FIRST_INDEX: usize = 1;
 pub const GAS_TO_SAVE_PROGRESS: u64 = 100_000;
@@ -38,10 +32,8 @@ pub struct OperationData<
     pub user_index: usize,
     pub total_users: usize,
     pub users_mapper: UnorderedSetMapper<M, AddressId>,
-    pub service_id: AddressId,
     pub service_info: ServiceInfo<M>,
     pub service_index: usize,
-    pub current_epoch: Epoch,
     pub fees_contract_address: ManagedAddress<M>,
 }
 
@@ -83,13 +75,11 @@ pub trait DailyOperationsModule:
             user_index: *user_index,
             total_users,
             users_mapper,
-            service_id,
             service_info: self
                 .service_info(service_id)
                 .get_from_address(&fees_contract_address)
                 .get(service_index),
             service_index,
-            current_epoch: self.blockchain().get_block_epoch(),
             fees_contract_address,
         };
 
@@ -153,15 +143,6 @@ pub trait DailyOperationsModule:
 
         progress.current_index += 1;
 
-        let subscription_type = self
-            .subscription_type(all_data.service_id, user_id, all_data.service_index)
-            .get_from_address(&all_data.fees_contract_address);
-        let next_action_epoch =
-            self.get_next_action_epoch(user_id, all_data.service_index, subscription_type);
-        if next_action_epoch > all_data.current_epoch {
-            return CONTINUE_OP;
-        }
-
         let subtract_result = self.call_subtract_payment(
             all_data.fees_contract_address.clone(),
             all_data.service_index,
@@ -183,6 +164,7 @@ pub trait DailyOperationsModule:
             self,
             user_address.clone(),
             user_id,
+            all_data.service_index,
             &all_data.service_info,
             user_data.borrow(),
         );
@@ -192,9 +174,6 @@ pub trait DailyOperationsModule:
 
         let interpreted_results = unsafe { action_results.unwrap_unchecked() };
         self.send_user_rewards(&user_address, interpreted_results.user_rewards);
-
-        self.last_action_epoch(user_id, all_data.service_index)
-            .set(all_data.current_epoch);
 
         CONTINUE_OP
     }
@@ -208,21 +187,6 @@ pub trait DailyOperationsModule:
         self.fee_contract_proxy_obj(fee_contract_address)
             .subtract_payment(service_index, user_id)
             .execute_on_dest_context()
-    }
-
-    fn get_next_action_epoch(
-        &self,
-        user_id: AddressId,
-        service_index: usize,
-        subscription_type: SubscriptionType,
-    ) -> Epoch {
-        let last_action_epoch = self.last_action_epoch(user_id, service_index).get();
-        match subscription_type {
-            SubscriptionType::None => sc_panic!("Unexpected value"),
-            SubscriptionType::Daily => last_action_epoch + DAILY_EPOCHS,
-            SubscriptionType::Weekly => last_action_epoch + WEEKLY_EPOCHS,
-            SubscriptionType::Monthly => last_action_epoch + MONTHLY_EPOCHS,
-        }
     }
 
     fn send_user_rewards(
@@ -240,11 +204,4 @@ pub trait DailyOperationsModule:
         &self,
         sc_address: ManagedAddress,
     ) -> subscription_fee::Proxy<Self::Api>;
-
-    #[storage_mapper("lastActionEpoch")]
-    fn last_action_epoch(
-        &self,
-        user_id: AddressId,
-        service_index: usize,
-    ) -> SingleValueMapper<Epoch>;
 }

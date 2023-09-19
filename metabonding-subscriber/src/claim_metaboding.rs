@@ -56,4 +56,8 @@ pub trait ClaimMetabondingModule {
         &self,
         sc_address: ManagedAddress,
     ) -> claim_metaboding_mod::Proxy<Self::Api>;
+
+    #[view(getEnergyThreshold)]
+    #[storage_mapper("energyThreshold")]
+    fn energy_threshold(&self) -> SingleValueMapper<BigUint>;
 }

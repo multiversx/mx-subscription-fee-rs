@@ -1,5 +1,5 @@
 use auto_farm::common::address_to_id_mapper::{AddressId, AddressToIdMapper};
-use subscription_fee::service::{ServiceInfo, SubscriptionType};
+use subscription_fee::service::ServiceInfo;
 
 multiversx_sc::imports!();
 
@@ -28,12 +28,4 @@ pub trait CommonStorageModule {
         &self,
         service_id: AddressId,
     ) -> SingleValueMapper<ManagedVec<ServiceInfo<Self::Api>>>;
-
-    #[storage_mapper("subscriptionType")]
-    fn subscription_type(
-        &self,
-        user_id: AddressId,
-        service_id: AddressId,
-        service_index: usize,
-    ) -> SingleValueMapper<SubscriptionType>;
 }
