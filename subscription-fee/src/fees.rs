@@ -61,7 +61,7 @@ pub trait FeesModule {
                     self.send().direct_egld(&caller, &amount);
                     egld_mapper.set(&user_egld_amount - &amount);
 
-                    egld_amount = amount;
+                    egld_amount += amount;
                 }
 
                 continue;
@@ -70,7 +70,11 @@ pub trait FeesModule {
             let mut opt_found_token_index = None;
             for (index, user_payment) in all_user_tokens.iter().enumerate() {
                 if user_payment.token_identifier == token_id && user_payment.amount >= amount {
-                    output_payments.push(user_payment);
+                    output_payments.push(EsdtTokenPayment::new(
+                        token_id.unwrap_esdt(),
+                        0,
+                        amount.clone(),
+                    ));
                     opt_found_token_index = Some(index);
                     break;
                 }
