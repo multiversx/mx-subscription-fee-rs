@@ -30,7 +30,7 @@ where
         let rust_zero = rust_biguint!(0);
         let sub_wrapper = b_mock.borrow_mut().create_sc_account(
             &rust_zero,
-            Some(&owner_addr),
+            Some(owner_addr),
             builder,
             "some other wasm path",
         );
