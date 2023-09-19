@@ -5,7 +5,7 @@ use multiversx_sc::api::StorageMapperApi;
 use multiversx_sc_modules::ongoing_operation::{LoopOp, CONTINUE_OP, STOP_OP};
 use subscription_fee::{
     service::ServiceInfo,
-    subtract_payments::{MyVeryOwnScResult, ProxyTrait as _},
+    subtract_payments::{Epoch, MyVeryOwnScResult, ProxyTrait as _},
 };
 
 use crate::base_functions::SubscriberContract;
@@ -198,6 +198,21 @@ pub trait DailyOperationsModule:
             self.send().direct_non_zero_esdt_payment(user_address, &rew);
         }
     }
+
+    fn get_user_index(&self, service_index: usize, current_epoch: Epoch) -> usize {
+        let last_action_epoch = self.last_global_action_epoch(service_index).get();
+        if last_action_epoch == current_epoch {
+            self.user_index().get()
+        } else {
+            0
+        }
+    }
+
+    #[storage_mapper("userIndex")]
+    fn user_index(&self) -> SingleValueMapper<usize>;
+
+    #[storage_mapper("lastGloblalActionEpoch")]
+    fn last_global_action_epoch(&self, service_index: usize) -> SingleValueMapper<Epoch>;
 
     #[proxy]
     fn fee_contract_proxy_obj(

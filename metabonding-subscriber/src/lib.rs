@@ -6,7 +6,7 @@ use auto_farm::common::address_to_id_mapper::AddressId;
 use claim_metaboding::AdditionalMetabodingData;
 use metabonding::claim::ClaimArgPair;
 use subscriber::base_functions::{AllBaseTraits, InterpretedResult, SubscriberContract};
-use subscription_fee::{service::ServiceInfo, subtract_payments::Epoch};
+use subscription_fee::service::ServiceInfo;
 
 multiversx_sc::imports!();
 
@@ -64,21 +64,6 @@ pub trait MetabondingSubscriber:
 
         result
     }
-
-    fn get_user_index(&self, service_index: usize, current_epoch: Epoch) -> usize {
-        let last_action_epoch = self.last_global_action_epoch(service_index).get();
-        if last_action_epoch == current_epoch {
-            self.user_index().get()
-        } else {
-            0
-        }
-    }
-
-    #[storage_mapper("userIndex")]
-    fn user_index(&self) -> SingleValueMapper<usize>;
-
-    #[storage_mapper("lastGloblalActionEpoch")]
-    fn last_global_action_epoch(&self, service_index: usize) -> SingleValueMapper<Epoch>;
 }
 
 pub struct MetabondingWrapper<
