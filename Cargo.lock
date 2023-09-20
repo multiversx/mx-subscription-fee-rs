@@ -145,7 +145,7 @@ dependencies = [
  "legacy_token_decode_module",
  "lkmex-transfer",
  "mergeable",
- "metabonding 0.0.0 (git+https://github.com/multiversx/mx-metabonding-sc?rev=fd17100)",
+ "metabonding",
  "multiversx-sc",
  "multiversx-sc-modules",
  "pair",
@@ -1510,43 +1510,11 @@ dependencies = [
 [[package]]
 name = "metabonding"
 version = "0.0.0"
-source = "git+https://github.com/multiversx/mx-metabonding-sc?rev=cec34aa#cec34aa3c174296d4ca7052a2ef9263de882d395"
-dependencies = [
- "multiversx-sc",
- "multiversx-sc-modules",
- "sc_whitelist_module",
-]
-
-[[package]]
-name = "metabonding"
-version = "0.0.0"
 source = "git+https://github.com/multiversx/mx-metabonding-sc?rev=fd17100#fd17100885419dd72d829b0962e6ce5594474898"
 dependencies = [
  "multiversx-sc",
  "multiversx-sc-modules",
  "sc_whitelist_module",
-]
-
-[[package]]
-name = "metabonding-subscriber"
-version = "0.0.0"
-dependencies = [
- "auto-farm",
- "energy-query",
- "metabonding 0.0.0 (git+https://github.com/multiversx/mx-metabonding-sc?rev=cec34aa)",
- "multiversx-sc",
- "multiversx-sc-modules",
- "multiversx-sc-scenario",
- "subscriber",
- "subscription-fee",
-]
-
-[[package]]
-name = "metabonding-subscriber-meta"
-version = "0.0.0"
-dependencies = [
- "metabonding-subscriber",
- "multiversx-sc-meta",
 ]
 
 [[package]]
