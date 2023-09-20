@@ -34,8 +34,7 @@ pub trait SubscriberContractMain:
         let mut user_index = self.get_user_index(service_index, current_epoch);
 
         let mut dummy_args = ManagedVec::new();
-        let total_users = self.user_id().get_last_id();
-        for _ in 0..total_users {
+        for _ in 0..10 {
             dummy_args.push(DummyData { dummy_data: 0 });
         }
 
