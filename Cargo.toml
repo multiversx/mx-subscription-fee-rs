@@ -1,5 +1,7 @@
 [workspace]
 members = [
+  "farm-boosted-rewards-subscriber",
+  "farm-boosted-rewards-subscriber/meta",
   "subscriber",
   "subscriber/meta",
   "subscription-fee",

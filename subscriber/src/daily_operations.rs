@@ -2,7 +2,10 @@ use core::borrow::Borrow;
 
 use auto_farm::common::address_to_id_mapper::AddressId;
 use multiversx_sc::api::StorageMapperApi;
-use multiversx_sc_modules::ongoing_operation::{LoopOp, CONTINUE_OP, STOP_OP};
+use multiversx_sc_modules::{
+    ongoing_operation::{LoopOp, CONTINUE_OP, STOP_OP},
+    transfer_role_proxy::PaymentsVec,
+};
 use subscription_fee::{
     service::ServiceInfo,
     subtract_payments::{Epoch, MyVeryOwnScResult, ProxyTrait as _},
@@ -14,7 +17,6 @@ multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 pub const FIRST_INDEX: usize = 1;
-pub const GAS_TO_SAVE_PROGRESS: u64 = 100_000;
 
 #[derive(TypeAbi, TopEncode, TopDecode, Default)]
 pub struct OperationProgress {
@@ -37,6 +39,12 @@ pub struct OperationData<
     pub fees_contract_address: ManagedAddress<M>,
 }
 
+pub struct ServiceResult<M: ManagedTypeApi> {
+    pub status: OperationCompletionStatus,
+    pub egld_total: BigUint<M>,
+    pub esdt_total: PaymentsVec<M>,
+}
+
 #[multiversx_sc::module]
 pub trait DailyOperationsModule:
     crate::service::ServiceModule
@@ -45,10 +53,11 @@ pub trait DailyOperationsModule:
 {
     fn perform_service<SC: SubscriberContract<SubSc = Self>>(
         &self,
+        gas_to_save_progress: u64,
         service_index: usize,
         user_index: &mut usize,
         additional_data: ManagedVec<SC::AdditionalDataType>,
-    ) -> OperationCompletionStatus {
+    ) -> ServiceResult<Self::Api> {
         let own_address = self.blockchain().get_sc_address();
         let fees_contract_address = self.fees_contract_address().get();
         let service_id = self
@@ -86,7 +95,7 @@ pub trait DailyOperationsModule:
         let mut output_egld = BigUint::zero();
         let mut output_esdt = ManagedVec::new();
 
-        let run_result = self.run_while_it_has_gas(GAS_TO_SAVE_PROGRESS, || {
+        let run_result = self.run_while_it_has_gas(gas_to_save_progress, || {
             self.perform_one_operation::<SC>(
                 &mut progress,
                 &mut all_data,
@@ -101,15 +110,11 @@ pub trait DailyOperationsModule:
 
         *user_index = progress.current_index;
 
-        let caller = self.blockchain().get_caller();
-        if output_egld > 0 {
-            self.send().direct_egld(&caller, &output_egld);
+        ServiceResult {
+            status: run_result,
+            egld_total: output_egld,
+            esdt_total: output_esdt,
         }
-        if !output_esdt.is_empty() {
-            self.send().direct_multi(&caller, &output_esdt);
-        }
-
-        run_result
     }
 
     fn perform_one_operation<SC: SubscriberContract<SubSc = Self>>(
@@ -154,26 +159,27 @@ pub trait DailyOperationsModule:
 
         let fee = unsafe { subtract_result.unwrap_unchecked() };
         if fee.token_identifier.is_egld() {
-            *output_egld += fee.amount;
+            *output_egld += &fee.amount;
         } else {
-            let payment = EsdtTokenPayment::new(fee.token_identifier.unwrap_esdt(), 0, fee.amount);
+            let payment = EsdtTokenPayment::new(
+                fee.token_identifier.clone().unwrap_esdt(),
+                0,
+                fee.amount.clone(),
+            );
             output_esdt.push(payment);
         }
 
         let action_results = SC::perform_action(
             self,
             user_address.clone(),
-            user_id,
+            fee,
             all_data.service_index,
             &all_data.service_info,
             user_data.borrow(),
         );
-        if action_results.is_err() {
-            return CONTINUE_OP;
+        if let Result::Ok(interpreted_results) = action_results {
+            self.send_user_rewards(&user_address, interpreted_results.user_rewards);
         }
-
-        let interpreted_results = unsafe { action_results.unwrap_unchecked() };
-        self.send_user_rewards(&user_address, interpreted_results.user_rewards);
 
         CONTINUE_OP
     }

@@ -3,7 +3,6 @@
 
 use core::marker::PhantomData;
 
-use auto_farm::common::address_to_id_mapper::AddressId;
 use base_functions::{AllBaseTraits, InterpretedResult, SubscriberContract};
 use multiversx_sc::derive::ManagedVecItem;
 use subscription_fee::service::ServiceInfo;
@@ -15,6 +14,8 @@ pub mod base_init;
 pub mod common_storage;
 pub mod daily_operations;
 pub mod service;
+
+pub const DEFAULT_GAS_TO_SAVE_PROGRESS: u64 = 100_000;
 
 #[multiversx_sc::contract]
 pub trait SubscriberContractMain:
@@ -38,14 +39,26 @@ pub trait SubscriberContractMain:
             dummy_args.push(DummyData { dummy_data: 0 });
         }
 
-        let result =
-            self.perform_service::<DummyWrapper<Self>>(service_index, &mut user_index, dummy_args);
+        let result = self.perform_service::<DummyWrapper<Self>>(
+            DEFAULT_GAS_TO_SAVE_PROGRESS,
+            service_index,
+            &mut user_index,
+            dummy_args,
+        );
+
+        let caller = self.blockchain().get_caller();
+        if result.egld_total > 0 {
+            self.send().direct_egld(&caller, &result.egld_total);
+        }
+        if !result.esdt_total.is_empty() {
+            self.send().direct_multi(&caller, &result.esdt_total);
+        }
 
         self.user_index().set(user_index);
         self.last_global_action_epoch(service_index)
             .set(current_epoch);
 
-        result
+        result.status
     }
 }
 
@@ -68,7 +81,7 @@ where
     fn perform_action(
         _sc: &Self::SubSc,
         _user_address: ManagedAddress<<Self::SubSc as ContractBase>::Api>,
-        _user_id: AddressId,
+        _fee: EgldOrEsdtTokenPayment<<Self::SubSc as ContractBase>::Api>,
         _service_index: usize,
         _service_info: &ServiceInfo<<Self::SubSc as ContractBase>::Api>,
         _additional_data: &<Self as SubscriberContract>::AdditionalDataType,

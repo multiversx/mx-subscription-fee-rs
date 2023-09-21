@@ -54,7 +54,7 @@ fn init_all<
     b_mock_rc
         .borrow_mut()
         .execute_tx(&owner, &sub_sc.s_wrapper, &rust_biguint!(0), |sc| {
-            sc.add_pair(
+            sc.add_usdc_pair(
                 managed_token_id!(FIRST_TOKEN_ID),
                 managed_address!(pair_setup.pair_wrapper.address_ref()),
             );
