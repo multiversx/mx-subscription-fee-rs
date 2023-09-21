@@ -16,6 +16,7 @@ multiversx_sc::derive_imports!();
 pub mod buy_mex;
 pub mod claim_farm_boosted;
 
+pub const BUY_MEX_COST: u64 = 5_000_000;
 pub const LOCK_GAS_PER_USER: u64 = 7_000_000;
 
 #[multiversx_sc::contract]
@@ -80,7 +81,7 @@ pub trait SubscriberContractMain:
         let current_epoch = self.blockchain().get_block_epoch();
         let mut user_index = self.get_user_index(service_index, current_epoch);
         let result = self.perform_service::<FarmClaimBoostedWrapper<Self>>(
-            total_users as u64 * LOCK_GAS_PER_USER,
+            total_users as u64 * (BUY_MEX_COST + LOCK_GAS_PER_USER),
             service_index,
             &mut user_index,
             args_vec,
