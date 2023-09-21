@@ -16,7 +16,7 @@ multiversx_sc::derive_imports!();
 pub mod buy_mex;
 pub mod claim_farm_boosted;
 
-pub const BUY_MEX_COST: u64 = 5_000_000;
+pub const BUY_MEX_COST: u64 = 20_000_000;
 pub const LOCK_GAS_PER_USER: u64 = 7_000_000;
 
 #[multiversx_sc::contract]
