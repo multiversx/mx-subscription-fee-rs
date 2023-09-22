@@ -39,26 +39,18 @@ pub trait SubscriberContractMain:
             dummy_args.push(DummyData { dummy_data: 0 });
         }
 
-        let result = self.perform_service::<DummyWrapper<Self>>(
+        let run_result = self.perform_service::<DummyWrapper<Self>>(
             DEFAULT_GAS_TO_SAVE_PROGRESS,
             service_index,
             &mut user_index,
             dummy_args,
         );
 
-        let caller = self.blockchain().get_caller();
-        if result.egld_total > 0 {
-            self.send().direct_egld(&caller, &result.egld_total);
-        }
-        if !result.esdt_total.is_empty() {
-            self.send().direct_multi(&caller, &result.esdt_total);
-        }
-
         self.user_index().set(user_index);
         self.last_global_action_epoch(service_index)
             .set(current_epoch);
 
-        result.status
+        run_result
     }
 }
 
@@ -81,7 +73,6 @@ where
     fn perform_action(
         _sc: &Self::SubSc,
         _user_address: ManagedAddress<<Self::SubSc as ContractBase>::Api>,
-        _fee: EgldOrEsdtTokenPayment<<Self::SubSc as ContractBase>::Api>,
         _service_index: usize,
         _service_info: &ServiceInfo<<Self::SubSc as ContractBase>::Api>,
         _additional_data: &<Self as SubscriberContract>::AdditionalDataType,

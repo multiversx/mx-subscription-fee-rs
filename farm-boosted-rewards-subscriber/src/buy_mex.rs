@@ -67,6 +67,30 @@ pub trait BuyMexModule {
         self.mex_pairs(&token_id).clear();
     }
 
+    #[only_owner]
+    #[endpoint(performMexOperations)]
+    fn perform_mex_operations_endpoint(&self) {
+        // let actions_percentage = if service_index == 0 {
+        //     sc.normal_user_percentage().get()
+        // } else {
+        //     sc.premium_user_percentage().get()
+        // };
+
+        // let token_id = if fee.token_identifier.is_egld() {
+        //     // wrap egld
+        //     TokenIdentifier::from("PLACEHOLDER")
+        // } else {
+        //     fee.token_identifier.unwrap_esdt()
+        // };
+
+        // sc.perform_mex_operations(
+        //     user_address.clone(),
+        //     token_id,
+        //     fee.amount,
+        //     &actions_percentage,
+        // );
+    }
+
     fn perform_mex_operations(
         &self,
         user_address: ManagedAddress,
@@ -126,9 +150,7 @@ pub trait BuyMexModule {
         }
 
         let pair_mapper = self.mex_pairs(&token_id);
-        if pair_mapper.is_empty() {
-            return None;
-        }
+        require!(!pair_mapper.is_empty(), "No pair set for token");
 
         let mex_token_id = self.mex_token_id().get();
         let pair_address = pair_mapper.get();

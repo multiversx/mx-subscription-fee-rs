@@ -20,7 +20,6 @@ pub trait SubscriberContract {
     fn perform_action(
         sc: &Self::SubSc,
         user_address: ManagedAddress<<Self::SubSc as ContractBase>::Api>,
-        fee: EgldOrEsdtTokenPayment<<Self::SubSc as ContractBase>::Api>,
         service_index: usize,
         service_info: &ServiceInfo<<Self::SubSc as ContractBase>::Api>,
         additional_data: &<Self as SubscriberContract>::AdditionalDataType,

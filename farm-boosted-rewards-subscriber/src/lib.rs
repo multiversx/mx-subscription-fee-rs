@@ -80,20 +80,18 @@ pub trait SubscriberContractMain:
 
         let current_epoch = self.blockchain().get_block_epoch();
         let mut user_index = self.get_user_index(service_index, current_epoch);
-        let result = self.perform_service::<FarmClaimBoostedWrapper<Self>>(
+        let run_result = self.perform_service::<FarmClaimBoostedWrapper<Self>>(
             total_users as u64 * (BUY_MEX_COST + LOCK_GAS_PER_USER),
             service_index,
             &mut user_index,
             args_vec,
         );
 
-        // do stuff with result
-
         self.user_index().set(user_index);
         self.last_global_action_epoch(service_index)
             .set(current_epoch);
 
-        result.status
+        run_result
     }
 }
 
@@ -119,7 +117,6 @@ where
     fn perform_action(
         sc: &Self::SubSc,
         user_address: ManagedAddress<<Self::SubSc as ContractBase>::Api>,
-        fee: EgldOrEsdtTokenPayment<<Self::SubSc as ContractBase>::Api>,
         service_index: usize,
         service_info: &ServiceInfo<<Self::SubSc as ContractBase>::Api>,
         _additional_data: &<Self as SubscriberContract>::AdditionalDataType,
@@ -131,26 +128,6 @@ where
                 return Result::Err(());
             }
         }
-
-        let actions_percentage = if service_index == 0 {
-            sc.normal_user_percentage().get()
-        } else {
-            sc.premium_user_percentage().get()
-        };
-
-        let token_id = if fee.token_identifier.is_egld() {
-            // wrap egld
-            TokenIdentifier::from("PLACEHOLDER")
-        } else {
-            fee.token_identifier.unwrap_esdt()
-        };
-
-        sc.perform_mex_operations(
-            user_address.clone(),
-            token_id,
-            fee.amount,
-            &actions_percentage,
-        );
 
         let _ = sc.claim_farm_boosted_rewards(service_info.sc_address.clone(), user_address);
 
