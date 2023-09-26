@@ -2,6 +2,8 @@ use core::hint::unreachable_unchecked;
 
 use auto_farm::common::{address_to_id_mapper::AddressId, unique_payments::UniquePayments};
 
+use crate::service::SubscriptionType;
+
 pub type Epoch = u64;
 
 multiversx_sc::imports!();
@@ -68,10 +70,22 @@ pub trait SubtractPaymentsModule:
             return MyVeryOwnScResult::Err(());
         }
 
+        let subscription_type = self
+            .subscription_type(user_id, service_id, service_index)
+            .get();
+        let multiplier = match subscription_type {
+            SubscriptionType::Daily => MONTHLY_EPOCHS / DAILY_EPOCHS,
+            SubscriptionType::Weekly => MONTHLY_EPOCHS / WEEKLY_EPOCHS,
+            SubscriptionType::Monthly => 1,
+            SubscriptionType::None => return MyVeryOwnScResult::Err(()),
+        };
+
         let service_info = self.service_info(service_id).get().get(service_index);
         let subtract_result = match service_info.opt_payment_token {
-            Some(token_id) => self.subtract_specific_token(user_id, token_id, service_info.amount),
-            None => self.subtract_any_token(user_id, service_info.amount),
+            Some(token_id) => {
+                self.subtract_specific_token(user_id, token_id, service_info.amount * multiplier)
+            }
+            None => self.subtract_any_token(user_id, service_info.amount * multiplier),
         };
         if let MyVeryOwnScResult::Ok(payment) = &subtract_result {
             self.send().direct(
