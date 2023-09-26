@@ -3,7 +3,7 @@ use core::borrow::Borrow;
 use auto_farm::common::address_to_id_mapper::AddressId;
 use multiversx_sc::api::StorageMapperApi;
 use multiversx_sc_modules::ongoing_operation::{LoopOp, CONTINUE_OP, STOP_OP};
-use subscription_fee::{service::ServiceInfo, subtract_payments::Epoch};
+use subscription_fee::service::ServiceInfo;
 
 use crate::base_functions::SubscriberContract;
 
@@ -147,10 +147,19 @@ pub trait DailyOperationsModule:
         }
     }
 
-    fn get_user_index(&self, service_index: usize, current_epoch: Epoch) -> usize {
-        let last_action_epoch = self.last_global_action_epoch(service_index).get();
-        if last_action_epoch == current_epoch {
-            self.user_index().get()
+    fn get_user_index(
+        &self,
+        fees_contract_address: &ManagedAddress,
+        service_id: AddressId,
+        service_index: usize,
+    ) -> usize {
+        let last_user_index = self
+            .subscribed_users(service_id, service_index)
+            .len_at_address(fees_contract_address);
+        let stored_user_index = self.user_index().get();
+
+        if stored_user_index != 0 && stored_user_index < last_user_index {
+            stored_user_index
         } else {
             1
         }
@@ -158,7 +167,4 @@ pub trait DailyOperationsModule:
 
     #[storage_mapper("userIndex")]
     fn user_index(&self) -> SingleValueMapper<usize>;
-
-    #[storage_mapper("lastGloblalActionEpoch")]
-    fn last_global_action_epoch(&self, service_index: usize) -> SingleValueMapper<Epoch>;
 }

@@ -78,7 +78,8 @@ pub trait ServiceModule:
             "Cannot subtract payment yet!"
         );
 
-        let mut user_index = self.get_subtract_user_index(service_index, current_epoch);
+        let mut user_index =
+            self.get_subtract_user_index(&fees_contract_address, service_id, service_index);
         let mut progress = self.load_operation::<SubtractPaymentOperation>();
         if progress.user_index == 0 {
             progress.service_index = service_index;
@@ -111,8 +112,6 @@ pub trait ServiceModule:
         user_index = progress.user_index;
 
         self.subtract_user_index().set(user_index);
-        self.subtract_payment_global_epoch(service_index)
-            .set(current_epoch);
 
         run_result
     }
@@ -161,10 +160,19 @@ pub trait ServiceModule:
         CONTINUE_OP
     }
 
-    fn get_subtract_user_index(&self, service_index: usize, current_epoch: Epoch) -> usize {
-        let last_action_epoch = self.subtract_payment_global_epoch(service_index).get();
-        if last_action_epoch == current_epoch {
-            self.subtract_user_index().get()
+    fn get_subtract_user_index(
+        &self,
+        fees_contract_address: &ManagedAddress,
+        service_id: AddressId,
+        service_index: usize,
+    ) -> usize {
+        let last_user_index = self
+            .subscribed_users(service_id, service_index)
+            .len_at_address(fees_contract_address);
+        let stored_user_index = self.subtract_user_index().get();
+
+        if stored_user_index != 0 && stored_user_index < last_user_index {
+            stored_user_index
         } else {
             1
         }
@@ -198,9 +206,6 @@ pub trait ServiceModule:
 
     #[storage_mapper("nextSubtractEpoch")]
     fn next_subtract_epoch(&self, service_index: usize) -> SingleValueMapper<Epoch>;
-
-    #[storage_mapper("subtractPaymentGlobalEpoch")]
-    fn subtract_payment_global_epoch(&self, service_index: usize) -> SingleValueMapper<Epoch>;
 
     #[storage_mapper("userFees")]
     fn user_fees(

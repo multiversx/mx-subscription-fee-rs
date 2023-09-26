@@ -13,11 +13,10 @@ use crate::claim_farm_boosted::AdditionalFarmData;
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
+pub const GAS_TO_SAVE_PERFORM_ACTION_PROGRESS: u64 = 100_000;
+
 pub mod buy_mex;
 pub mod claim_farm_boosted;
-
-pub const BUY_MEX_COST: u64 = 20_000_000;
-pub const LOCK_GAS_PER_USER: u64 = 7_000_000;
 
 #[multiversx_sc::contract]
 pub trait SubscriberContractMain:
@@ -78,18 +77,21 @@ pub trait SubscriberContractMain:
             args_vec.push(AdditionalFarmData { dummy_data: 0 });
         }
 
-        let current_epoch = self.blockchain().get_block_epoch();
-        let mut user_index = self.get_user_index(service_index, current_epoch);
+        let own_address = self.blockchain().get_sc_address();
+        let fees_contract_address = self.fees_contract_address().get();
+        let service_id = self
+            .service_id()
+            .get_id_at_address_non_zero(&fees_contract_address, &own_address);
+
+        let mut user_index = self.get_user_index(&fees_contract_address, service_id, service_index);
         let run_result = self.perform_service::<FarmClaimBoostedWrapper<Self>>(
-            total_users as u64 * (BUY_MEX_COST + LOCK_GAS_PER_USER),
+            GAS_TO_SAVE_PERFORM_ACTION_PROGRESS,
             service_index,
             &mut user_index,
             args_vec,
         );
 
         self.user_index().set(user_index);
-        self.last_global_action_epoch(service_index)
-            .set(current_epoch);
 
         run_result
     }

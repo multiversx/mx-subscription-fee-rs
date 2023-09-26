@@ -31,8 +31,8 @@ pub trait SubscriberContractMain:
     }
 
     fn dummy_perform_action(&self, service_index: usize) -> OperationCompletionStatus {
-        let current_epoch = self.blockchain().get_block_epoch();
-        let mut user_index = self.get_user_index(service_index, current_epoch);
+        let fees_contract_address = self.fees_contract_address().get();
+        let mut user_index = self.get_user_index(&fees_contract_address, 1, service_index);
 
         let mut dummy_args = ManagedVec::new();
         for _ in 0..10 {
@@ -47,8 +47,6 @@ pub trait SubscriberContractMain:
         );
 
         self.user_index().set(user_index);
-        self.last_global_action_epoch(service_index)
-            .set(current_epoch);
 
         run_result
     }

@@ -2,8 +2,6 @@ use core::hint::unreachable_unchecked;
 
 use auto_farm::common::{address_to_id_mapper::AddressId, unique_payments::UniquePayments};
 
-use crate::service::SubscriptionType;
-
 pub type Epoch = u64;
 
 multiversx_sc::imports!();
@@ -56,15 +54,13 @@ pub trait SubtractPaymentsModule:
     ) -> MyVeryOwnScResult<EgldOrEsdtTokenPayment, ()> {
         let caller = self.blockchain().get_caller();
         let service_id = self.service_id().get_id_non_zero(&caller);
-
-        let subscription_type = self
-            .subscription_type(service_id, user_id, service_index)
-            .get();
-        let next_action_epoch =
-            self.get_next_action_epoch(user_id, service_id, service_index, subscription_type);
         let current_epoch = self.blockchain().get_block_epoch();
-        if next_action_epoch > current_epoch {
-            return MyVeryOwnScResult::Err(());
+
+        let last_action_mapper = self.user_last_action_epoch(user_id, service_id, service_index);
+        let last_action_epoch = last_action_mapper.get();
+        if last_action_epoch > 0 {
+            let next_subtract_epoch = last_action_epoch + MONTHLY_EPOCHS;
+            require!(next_subtract_epoch >= current_epoch, "Cannot subtract yet");
         }
 
         let opt_user_address = self.user_id().get_address(user_id);
@@ -86,8 +82,7 @@ pub trait SubtractPaymentsModule:
             );
         }
 
-        self.last_action_epoch(user_id, service_id, service_index)
-            .set(current_epoch);
+        last_action_mapper.set(current_epoch);
 
         subtract_result
     }
@@ -162,26 +157,8 @@ pub trait SubtractPaymentsModule:
         MyVeryOwnScResult::Err(())
     }
 
-    fn get_next_action_epoch(
-        &self,
-        user_id: AddressId,
-        service_id: AddressId,
-        service_index: usize,
-        subscription_type: SubscriptionType,
-    ) -> Epoch {
-        let last_action_epoch = self
-            .last_action_epoch(user_id, service_id, service_index)
-            .get();
-        match subscription_type {
-            SubscriptionType::None => sc_panic!("Unexpected value"),
-            SubscriptionType::Daily => last_action_epoch + DAILY_EPOCHS,
-            SubscriptionType::Weekly => last_action_epoch + WEEKLY_EPOCHS,
-            SubscriptionType::Monthly => last_action_epoch + MONTHLY_EPOCHS,
-        }
-    }
-
-    #[storage_mapper("lastActionEpoch")]
-    fn last_action_epoch(
+    #[storage_mapper("userLastActionEpoch")]
+    fn user_last_action_epoch(
         &self,
         user_id: AddressId,
         service_id: AddressId,
