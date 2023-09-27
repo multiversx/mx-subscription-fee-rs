@@ -821,6 +821,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "farm-boosted-rewards-subscriber"
+version = "0.0.0"
+dependencies = [
+ "auto-farm",
+ "energy-factory",
+ "energy-query",
+ "hex",
+ "hex-literal",
+ "multiversx-sc",
+ "multiversx-sc-modules",
+ "multiversx-sc-scenario",
+ "num-bigint",
+ "num-traits",
+ "pair",
+ "pausable",
+ "subscriber",
+ "subscription-fee",
+]
+
+[[package]]
+name = "farm-boosted-rewards-subscriber-meta"
+version = "0.0.0"
+dependencies = [
+ "farm-boosted-rewards-subscriber",
+ "multiversx-sc-meta",
+]
+
+[[package]]
 name = "farm-boosted-yields"
 version = "0.0.0"
 source = "git+https://github.com/multiversx/mx-exchange-sc?rev=7f25a72#7f25a72c62d5920590563e4ccc56a47bd9a8ac21"

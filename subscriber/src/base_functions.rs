@@ -1,4 +1,3 @@
-use auto_farm::common::address_to_id_mapper::AddressId;
 use subscription_fee::service::ServiceInfo;
 
 multiversx_sc::imports!();
@@ -21,7 +20,6 @@ pub trait SubscriberContract {
     fn perform_action(
         sc: &Self::SubSc,
         user_address: ManagedAddress<<Self::SubSc as ContractBase>::Api>,
-        user_id: AddressId,
         service_index: usize,
         service_info: &ServiceInfo<<Self::SubSc as ContractBase>::Api>,
         additional_data: &<Self as SubscriberContract>::AdditionalDataType,

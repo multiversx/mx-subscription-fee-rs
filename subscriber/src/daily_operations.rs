@@ -3,10 +3,7 @@ use core::borrow::Borrow;
 use auto_farm::common::address_to_id_mapper::AddressId;
 use multiversx_sc::api::StorageMapperApi;
 use multiversx_sc_modules::ongoing_operation::{LoopOp, CONTINUE_OP, STOP_OP};
-use subscription_fee::{
-    service::ServiceInfo,
-    subtract_payments::{Epoch, MyVeryOwnScResult, ProxyTrait as _},
-};
+use subscription_fee::service::ServiceInfo;
 
 use crate::base_functions::SubscriberContract;
 
@@ -14,12 +11,11 @@ multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 pub const FIRST_INDEX: usize = 1;
-pub const GAS_TO_SAVE_PROGRESS: u64 = 100_000;
 
 #[derive(TypeAbi, TopEncode, TopDecode, Default)]
-pub struct OperationProgress {
+pub struct ClaimRewardsOperationProgress {
     pub service_index: usize,
-    pub current_index: usize,
+    pub user_index: usize,
     pub additional_data_index: usize,
 }
 
@@ -45,6 +41,7 @@ pub trait DailyOperationsModule:
 {
     fn perform_service<SC: SubscriberContract<SubSc = Self>>(
         &self,
+        gas_to_save_progress: u64,
         service_index: usize,
         user_index: &mut usize,
         additional_data: ManagedVec<SC::AdditionalDataType>,
@@ -55,12 +52,10 @@ pub trait DailyOperationsModule:
             .service_id()
             .get_id_at_address_non_zero(&fees_contract_address, &own_address);
 
-        let users_mapper = self.subscribed_users(service_id, service_index);
-        let total_users = users_mapper.len_at_address(&fees_contract_address);
-        let mut progress = self.load_operation::<OperationProgress>();
-        if progress.current_index == 0 {
+        let mut progress = self.load_operation::<ClaimRewardsOperationProgress>();
+        if progress.user_index == 0 {
             progress.service_index = service_index;
-            progress.current_index = *user_index;
+            progress.user_index = *user_index;
             progress.additional_data_index = 0;
         } else {
             require!(
@@ -68,6 +63,9 @@ pub trait DailyOperationsModule:
                 "Another operation is in progress"
             );
         }
+
+        let users_mapper = self.subscribed_users(service_id, service_index);
+        let total_users = users_mapper.len_at_address(&fees_contract_address);
 
         let mut all_data = OperationData::<Self::Api, SC::AdditionalDataType> {
             additional_data_len: additional_data.len(),
@@ -83,44 +81,26 @@ pub trait DailyOperationsModule:
             fees_contract_address,
         };
 
-        let mut output_egld = BigUint::zero();
-        let mut output_esdt = ManagedVec::new();
-
-        let run_result = self.run_while_it_has_gas(GAS_TO_SAVE_PROGRESS, || {
-            self.perform_one_operation::<SC>(
-                &mut progress,
-                &mut all_data,
-                &mut output_egld,
-                &mut output_esdt,
-            )
+        let run_result = self.run_while_it_has_gas(gas_to_save_progress, || {
+            self.perform_one_operation::<SC>(&mut progress, &mut all_data)
         });
 
         if run_result == OperationCompletionStatus::InterruptedBeforeOutOfGas {
             self.save_progress(&progress);
         }
 
-        *user_index = progress.current_index;
-
-        let caller = self.blockchain().get_caller();
-        if output_egld > 0 {
-            self.send().direct_egld(&caller, &output_egld);
-        }
-        if !output_esdt.is_empty() {
-            self.send().direct_multi(&caller, &output_esdt);
-        }
+        *user_index = progress.user_index;
 
         run_result
     }
 
     fn perform_one_operation<SC: SubscriberContract<SubSc = Self>>(
         &self,
-        progress: &mut OperationProgress,
+        progress: &mut ClaimRewardsOperationProgress,
         all_data: &mut OperationData<Self::Api, SC::AdditionalDataType>,
-        output_egld: &mut BigUint,
-        output_esdt: &mut ManagedVec<EsdtTokenPayment>,
     ) -> LoopOp {
         if progress.additional_data_index >= all_data.additional_data_len
-            || progress.current_index > all_data.total_users
+            || progress.user_index > all_data.total_users
         {
             return STOP_OP;
         }
@@ -130,7 +110,7 @@ pub trait DailyOperationsModule:
 
         let user_id = all_data
             .users_mapper
-            .get_by_index_at_address(&all_data.fees_contract_address, progress.current_index);
+            .get_by_index_at_address(&all_data.fees_contract_address, progress.user_index);
         let opt_user_address = self
             .user_id()
             .get_address_at_address(&all_data.fees_contract_address, user_id);
@@ -141,52 +121,20 @@ pub trait DailyOperationsModule:
             }
         };
 
-        progress.current_index += 1;
-
-        let subtract_result = self.call_subtract_payment(
-            all_data.fees_contract_address.clone(),
-            all_data.service_index,
-            user_id,
-        );
-        if subtract_result.is_err() {
-            return CONTINUE_OP;
-        }
-
-        let fee = unsafe { subtract_result.unwrap_unchecked() };
-        if fee.token_identifier.is_egld() {
-            *output_egld += fee.amount;
-        } else {
-            let payment = EsdtTokenPayment::new(fee.token_identifier.unwrap_esdt(), 0, fee.amount);
-            output_esdt.push(payment);
-        }
+        progress.user_index += 1;
 
         let action_results = SC::perform_action(
             self,
             user_address.clone(),
-            user_id,
             all_data.service_index,
             &all_data.service_info,
             user_data.borrow(),
         );
-        if action_results.is_err() {
-            return CONTINUE_OP;
+        if let Result::Ok(interpreted_results) = action_results {
+            self.send_user_rewards(&user_address, interpreted_results.user_rewards);
         }
 
-        let interpreted_results = unsafe { action_results.unwrap_unchecked() };
-        self.send_user_rewards(&user_address, interpreted_results.user_rewards);
-
         CONTINUE_OP
-    }
-
-    fn call_subtract_payment(
-        &self,
-        fee_contract_address: ManagedAddress,
-        service_index: usize,
-        user_id: AddressId,
-    ) -> MyVeryOwnScResult<EgldOrEsdtTokenPayment, ()> {
-        self.fee_contract_proxy_obj(fee_contract_address)
-            .subtract_payment(service_index, user_id)
-            .execute_on_dest_context()
     }
 
     fn send_user_rewards(
@@ -199,10 +147,19 @@ pub trait DailyOperationsModule:
         }
     }
 
-    fn get_user_index(&self, service_index: usize, current_epoch: Epoch) -> usize {
-        let last_action_epoch = self.last_global_action_epoch(service_index).get();
-        if last_action_epoch == current_epoch {
-            self.user_index().get()
+    fn get_user_index(
+        &self,
+        fees_contract_address: &ManagedAddress,
+        service_id: AddressId,
+        service_index: usize,
+    ) -> usize {
+        let last_user_index = self
+            .subscribed_users(service_id, service_index)
+            .len_at_address(fees_contract_address);
+        let stored_user_index = self.user_index().get();
+
+        if stored_user_index != 0 && stored_user_index < last_user_index {
+            stored_user_index
         } else {
             1
         }
@@ -210,13 +167,4 @@ pub trait DailyOperationsModule:
 
     #[storage_mapper("userIndex")]
     fn user_index(&self) -> SingleValueMapper<usize>;
-
-    #[storage_mapper("lastGloblalActionEpoch")]
-    fn last_global_action_epoch(&self, service_index: usize) -> SingleValueMapper<Epoch>;
-
-    #[proxy]
-    fn fee_contract_proxy_obj(
-        &self,
-        sc_address: ManagedAddress,
-    ) -> subscription_fee::Proxy<Self::Api>;
 }

@@ -15,8 +15,8 @@ pub mod pair_proxy {
 #[multiversx_sc::module]
 pub trait PairActionsModule {
     #[only_owner]
-    #[endpoint(addPair)]
-    fn add_pair(&self, token_id: TokenIdentifier, pair_address: ManagedAddress) {
+    #[endpoint(addUsdcPair)]
+    fn add_usdc_pair(&self, token_id: TokenIdentifier, pair_address: ManagedAddress) {
         require!(token_id.is_valid_esdt_identifier(), "Invalid token ID");
         require!(
             self.blockchain().is_smart_contract(&pair_address),
@@ -27,8 +27,8 @@ pub trait PairActionsModule {
     }
 
     #[only_owner]
-    #[endpoint(removePair)]
-    fn remove_pair(&self, token_id: TokenIdentifier) {
+    #[endpoint(removeUsdcPair)]
+    fn remove_usdc_pair(&self, token_id: TokenIdentifier) {
         self.pair_address_for_token(&token_id).clear();
     }
 
