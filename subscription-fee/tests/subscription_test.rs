@@ -260,9 +260,11 @@ fn subtract_ok_test() {
         .call_subtract_payment(&rand_service, 0, 1)
         .assert_ok();
 
-    b_mock_rc
-        .borrow()
-        .check_esdt_balance(&rand_service, FIRST_TOKEN_ID, &rust_biguint!(1_000));
+    b_mock_rc.borrow().check_esdt_balance(
+        &rand_service,
+        FIRST_TOKEN_ID,
+        &rust_biguint!(30 * 1_000),
+    );
 }
 
 #[test]
@@ -304,18 +306,22 @@ fn try_subtract_twice_same_day() {
         .call_subtract_payment(&rand_service, 0, 1)
         .assert_ok();
 
-    b_mock_rc
-        .borrow()
-        .check_esdt_balance(&rand_service, FIRST_TOKEN_ID, &rust_biguint!(1_000));
+    b_mock_rc.borrow().check_esdt_balance(
+        &rand_service,
+        FIRST_TOKEN_ID,
+        &rust_biguint!(30 * 1_000),
+    );
 
     sub_sc
         .call_subtract_payment(&rand_service, 0, 1)
-        .assert_ok();
+        .assert_user_error("Cannot subtract yet");
 
     // still same balance
-    b_mock_rc
-        .borrow()
-        .check_esdt_balance(&rand_service, FIRST_TOKEN_ID, &rust_biguint!(1_000));
+    b_mock_rc.borrow().check_esdt_balance(
+        &rand_service,
+        FIRST_TOKEN_ID,
+        &rust_biguint!(30 * 1_000),
+    );
 }
 
 #[test]
@@ -353,10 +359,12 @@ fn any_token_subtract_fee_test() {
         .call_subtract_payment(&rand_service, 0, 1)
         .assert_ok();
 
-    // pair has 1:2 token ratio, so for 1_000 tokens, we get 2_000 of the other
-    b_mock_rc
-        .borrow()
-        .check_esdt_balance(&rand_service, FIRST_TOKEN_ID, &rust_biguint!(2_000));
+    // pair has 1:2 token ratio, so for 30 * 1_000 tokens, we get 30 * 2_000 of the other
+    b_mock_rc.borrow().check_esdt_balance(
+        &rand_service,
+        FIRST_TOKEN_ID,
+        &rust_biguint!(30 * 2_000),
+    );
 }
 
 #[test]

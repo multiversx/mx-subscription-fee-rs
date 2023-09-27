@@ -62,7 +62,7 @@ pub trait SubtractPaymentsModule:
         let last_action_epoch = last_action_mapper.get();
         if last_action_epoch > 0 {
             let next_subtract_epoch = last_action_epoch + MONTHLY_EPOCHS;
-            require!(next_subtract_epoch >= current_epoch, "Cannot subtract yet");
+            require!(next_subtract_epoch <= current_epoch, "Cannot subtract yet");
         }
 
         let opt_user_address = self.user_id().get_address(user_id);
