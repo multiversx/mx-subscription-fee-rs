@@ -4,10 +4,10 @@
 use core::marker::PhantomData;
 
 use base_functions::{AllBaseTraits, InterpretedResult, SubscriberContract};
-use multiversx_sc::derive::ManagedVecItem;
 use subscription_fee::service::ServiceInfo;
 
 multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 pub mod base_functions;
 pub mod base_init;

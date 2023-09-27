@@ -78,7 +78,7 @@ pub trait ServiceModule:
             "Cannot subtract payment yet!"
         );
 
-        let mut user_index =
+        let user_index =
             self.get_subtract_user_index(&fees_contract_address, service_id, service_index);
         let mut progress = self.load_operation::<SubtractPaymentOperation>();
         if progress.user_index == 0 {
@@ -105,13 +105,14 @@ pub trait ServiceModule:
             self.perform_one_sub_operation(&mut progress, &all_data)
         });
 
-        if run_result == OperationCompletionStatus::InterruptedBeforeOutOfGas {
-            self.save_progress(&progress);
+        match run_result {
+            OperationCompletionStatus::Completed => self
+                .next_subtract_epoch(service_index)
+                .set(current_epoch + MONTHLY_EPOCHS),
+            OperationCompletionStatus::InterruptedBeforeOutOfGas => self.save_progress(&progress),
         }
 
-        user_index = progress.user_index;
-
-        self.subtract_user_index().set(user_index);
+        self.subtract_user_index().set(progress.user_index);
 
         run_result
     }
@@ -171,7 +172,7 @@ pub trait ServiceModule:
             .len_at_address(fees_contract_address);
         let stored_user_index = self.subtract_user_index().get();
 
-        if stored_user_index != 0 && stored_user_index < last_user_index {
+        if stored_user_index != 0 && stored_user_index <= last_user_index {
             stored_user_index
         } else {
             1

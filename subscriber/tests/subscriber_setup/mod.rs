@@ -87,6 +87,17 @@ where
         )
     }
 
+    pub fn call_subtract_payment(&mut self, service_index: usize) -> TxResult {
+        self.b_mock.borrow_mut().execute_tx(
+            &self.owner_addr,
+            &self.sub_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.subtract_payment_endpoint(service_index);
+            },
+        )
+    }
+
     pub fn call_perform_action(&mut self, service_index: usize) -> TxResult {
         self.b_mock.borrow_mut().execute_tx(
             &self.owner_addr,

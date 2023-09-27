@@ -275,12 +275,13 @@ fn perform_daily_action_test() {
 
     b_mock_rc.borrow_mut().set_block_epoch(10);
 
+    subscriber_setup.call_subtract_payment(0).assert_ok();
     subscriber_setup.call_perform_action(0).assert_ok();
 
     b_mock_rc.borrow().check_esdt_balance(
-        &subscriber_setup.owner_addr,
+        subscriber_setup.sub_wrapper.address_ref(),
         FIRST_TOKEN_ID,
-        &rust_biguint!(1_000),
+        &rust_biguint!(1_000 * 30),
     );
 
     // try perform operation again, same epoch
@@ -288,18 +289,19 @@ fn perform_daily_action_test() {
 
     // still same balance, no funds subtracted
     b_mock_rc.borrow().check_esdt_balance(
-        &subscriber_setup.owner_addr,
+        subscriber_setup.sub_wrapper.address_ref(),
         FIRST_TOKEN_ID,
-        &rust_biguint!(1_000),
+        &rust_biguint!(1_000 * 30),
     );
 
     b_mock_rc.borrow_mut().set_block_epoch(11);
 
     subscriber_setup.call_perform_action(0).assert_ok();
 
+    // still same balance, subtraction is done manually once per month
     b_mock_rc.borrow().check_esdt_balance(
-        &subscriber_setup.owner_addr,
+        subscriber_setup.sub_wrapper.address_ref(),
         FIRST_TOKEN_ID,
-        &rust_biguint!(2_000),
+        &rust_biguint!(1_000 * 30),
     );
 }
