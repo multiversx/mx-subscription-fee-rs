@@ -47,7 +47,7 @@ fn init_all<
         b_mock_rc.clone(),
         sub_builder,
         &owner,
-        &pair_setup.pair_wrapper.address_ref(),
+        pair_setup.pair_wrapper.address_ref(),
         vec![FIRST_TOKEN_ID.to_vec()],
     );
 

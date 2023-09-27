@@ -29,6 +29,7 @@ impl<PairObjBuilder> PairSetup<PairObjBuilder>
 where
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
 {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         b_mock: Rc<RefCell<BlockchainStateWrapper>>,
         pair_builder: PairObjBuilder,
