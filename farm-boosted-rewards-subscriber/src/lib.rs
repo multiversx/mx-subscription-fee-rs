@@ -120,7 +120,10 @@ where
         sc: &Self::SubSc,
         user_address: ManagedAddress<<Self::SubSc as ContractBase>::Api>,
         service_index: usize,
-        service_info: &ServiceInfo<<Self::SubSc as ContractBase>::Api>,
+        service_info: &ManagedVec<
+            <Self::SubSc as ContractBase>::Api,
+            ServiceInfo<<T as ContractBase>::Api>,
+        >,
         _additional_data: &<Self as SubscriberContract>::AdditionalDataType,
     ) -> Result<InterpretedResult<<Self::SubSc as ContractBase>::Api>, ()> {
         if service_index == 1 {
@@ -131,7 +134,12 @@ where
             }
         }
 
-        let _ = sc.claim_farm_boosted_rewards(service_info.sc_address.clone(), user_address);
+        for service_info_element in service_info.iter() {
+            let _ = sc.claim_farm_boosted_rewards(
+                service_info_element.sc_address.clone(),
+                user_address.clone(),
+            );
+        }
 
         // farm already sent rewards to user
         Result::Ok(InterpretedResult {

@@ -21,7 +21,10 @@ pub trait SubscriberContract {
         sc: &Self::SubSc,
         user_address: ManagedAddress<<Self::SubSc as ContractBase>::Api>,
         service_index: usize,
-        service_info: &ServiceInfo<<Self::SubSc as ContractBase>::Api>,
+        service_info: &ManagedVec<
+            <Self::SubSc as ContractBase>::Api,
+            ServiceInfo<<Self::SubSc as ContractBase>::Api>,
+        >,
         additional_data: &<Self as SubscriberContract>::AdditionalDataType,
     ) -> Result<InterpretedResult<<Self::SubSc as ContractBase>::Api>, ()>;
 }

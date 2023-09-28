@@ -28,7 +28,7 @@ pub struct OperationData<
     pub user_index: usize,
     pub total_users: usize,
     pub users_mapper: UnorderedSetMapper<M, AddressId>,
-    pub service_info: ServiceInfo<M>,
+    pub service_info: ManagedVec<M, ServiceInfo<M>>,
     pub service_index: usize,
     pub fees_contract_address: ManagedAddress<M>,
 }
@@ -75,8 +75,8 @@ pub trait DailyOperationsModule:
             users_mapper,
             service_info: self
                 .service_info(service_id)
-                .get_from_address(&fees_contract_address)
-                .get(service_index),
+                .get_from_address(&fees_contract_address),
+            // .get(service_index),
             service_index,
             fees_contract_address,
         };

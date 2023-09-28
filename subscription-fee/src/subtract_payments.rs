@@ -60,8 +60,19 @@ pub trait SubtractPaymentsModule:
 
         let last_action_mapper = self.user_last_action_epoch(user_id, service_id, service_index);
         let last_action_epoch = last_action_mapper.get();
+
+        let subscription_type = self
+            .subscription_type(user_id, service_id, service_index)
+            .get();
+
+        if subscription_type == SubscriptionType::None {
+            return MyVeryOwnScResult::Err(());
+        }
+
+        let subscription_type_epochs_no = self.get_subscription_type_epochs_no(subscription_type);
+
         if last_action_epoch > 0 {
-            let next_subtract_epoch = last_action_epoch + MONTHLY_EPOCHS;
+            let next_subtract_epoch = last_action_epoch + subscription_type_epochs_no;
             require!(next_subtract_epoch <= current_epoch, "Cannot subtract yet");
         }
 
@@ -70,15 +81,7 @@ pub trait SubtractPaymentsModule:
             return MyVeryOwnScResult::Err(());
         }
 
-        let subscription_type = self
-            .subscription_type(user_id, service_id, service_index)
-            .get();
-        let multiplier = match subscription_type {
-            SubscriptionType::Daily => MONTHLY_EPOCHS / DAILY_EPOCHS,
-            SubscriptionType::Weekly => MONTHLY_EPOCHS / WEEKLY_EPOCHS,
-            SubscriptionType::Monthly => 1,
-            SubscriptionType::None => return MyVeryOwnScResult::Err(()),
-        };
+        let multiplier = MONTHLY_EPOCHS / subscription_type_epochs_no;
 
         let service_info = self.service_info(service_id).get().get(service_index);
         let subtract_result = match service_info.opt_payment_token {
@@ -169,6 +172,15 @@ pub trait SubtractPaymentsModule:
         }
 
         MyVeryOwnScResult::Err(())
+    }
+
+    fn get_subscription_type_epochs_no(&self, subscription_type: SubscriptionType) -> Epoch {
+        match subscription_type {
+            SubscriptionType::Daily => DAILY_EPOCHS,
+            SubscriptionType::Weekly => WEEKLY_EPOCHS,
+            SubscriptionType::Monthly => MONTHLY_EPOCHS,
+            SubscriptionType::None => 0,
+        }
     }
 
     #[storage_mapper("userLastActionEpoch")]

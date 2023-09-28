@@ -10,7 +10,7 @@ pub struct ServiceInfo<M: ManagedTypeApi> {
     pub amount: BigUint<M>,
 }
 
-#[derive(TypeAbi, TopEncode, TopDecode)]
+#[derive(TypeAbi, TopEncode, TopDecode, PartialEq)]
 pub enum SubscriptionType {
     None,
     Daily,
