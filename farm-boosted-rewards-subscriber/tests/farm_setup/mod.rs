@@ -195,7 +195,7 @@ where
             .assert_ok();
 
         FarmSetup {
-            b_mock: b_mock,
+            b_mock,
             farm_wrapper,
             energy_factory_wrapper,
         }
