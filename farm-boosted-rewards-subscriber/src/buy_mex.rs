@@ -10,6 +10,12 @@ pub const TOTAL_PERCENTAGE: Percentage = 10_000;
 pub const BUY_MEX_COST: u64 = 20_000_000;
 pub const LOCK_GAS_PER_USER: u64 = 7_000_000;
 
+#[derive(TypeAbi, TopEncode, TopDecode, PartialEq)]
+pub enum SubscriptionUserType {
+    Normal,
+    Premium,
+}
+
 #[derive(TypeAbi, TopEncode, TopDecode)]
 pub struct MexActionsPercentages {
     pub lock: Percentage,
@@ -85,10 +91,12 @@ pub trait BuyMexModule:
     #[only_owner]
     #[endpoint(performMexOperations)]
     fn perform_mex_operations_endpoint(&self, service_index: usize) -> OperationCompletionStatus {
-        let actions_percentage = if service_index == 0 {
+        let actions_percentage = if service_index == SubscriptionUserType::Normal as usize {
             self.normal_user_percentage().get()
-        } else {
+        } else if service_index == SubscriptionUserType::Premium as usize {
             self.premium_user_percentage().get()
+        } else {
+            sc_panic!("Invalid service index")
         };
 
         let mut gas_per_user = BUY_MEX_COST;

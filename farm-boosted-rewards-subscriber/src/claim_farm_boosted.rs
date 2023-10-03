@@ -1,16 +1,6 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-mod claim_farm_boosted_rewards_proxy {
-    multiversx_sc::imports!();
-
-    #[multiversx_sc::proxy]
-    pub trait ClaimFarmBoostedRewardsProxy {
-        #[endpoint(claimBoostedRewards)]
-        fn claim_boosted_rewards(&self, user: ManagedAddress) -> EsdtTokenPayment<Self::Api>;
-    }
-}
-
 #[derive(ManagedVecItem, Clone)]
 pub struct AdditionalFarmData {
     pub dummy_data: u8,
@@ -32,7 +22,7 @@ pub trait ClaimFarmBoostedRewardsModule {
     fn farm_proxy_obj(
         &self,
         sc_address: ManagedAddress,
-    ) -> claim_farm_boosted_rewards_proxy::Proxy<Self::Api>;
+    ) -> farm_with_locked_rewards::Proxy<Self::Api>;
 
     #[view(getEnergyThreshold)]
     #[storage_mapper("energyThreshold")]

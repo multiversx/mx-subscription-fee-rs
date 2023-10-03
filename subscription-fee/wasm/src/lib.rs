@@ -5,23 +5,40 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                            2
+// Endpoints:                           17
 // Async Callback (empty):               1
-// Total number of exported functions:   4
+// Total number of exported functions:  19
 
 #![no_std]
-#![allow(internal_features)]
+
+// Configuration that works with rustc < 1.73.0.
+// TODO: Recommended rustc version: 1.73.0 or newer.
 #![feature(lang_items)]
 
 multiversx_sc_wasm_adapter::allocator!();
 multiversx_sc_wasm_adapter::panic_handler!();
 
 multiversx_sc_wasm_adapter::endpoints! {
-    adder
+    subscription_fee
     (
         init => init
-        getSum => sum
-        add => add
+        addAcceptedFeesTokens => add_accepted_fees_tokens
+        deposit => deposit
+        withdrawFunds => withdraw_funds
+        getAcceptedFeesTokens => accepted_fees_tokens
+        getUserDepositedFees => user_deposited_fees
+        getUserDepositedEgld => user_deposited_egld
+        registerService => register_service
+        unregisterService => unregister_service
+        approveService => approve_service
+        subscribe => subscribe
+        unsubscribe => unsubscribe
+        getPendingServices => pending_services
+        getServiceInfo => service_info
+        getSubscribedUsers => subscribed_users
+        subtractPayment => subtract_payment
+        addUsdcPair => add_usdc_pair
+        removeUsdcPair => remove_usdc_pair
     )
 }
 

@@ -4,7 +4,7 @@
 use core::marker::PhantomData;
 
 use auto_farm::common::{address_to_id_mapper::AddressId, unique_payments::UniquePayments};
-use buy_mex::MexActionsPercentages;
+use buy_mex::{MexActionsPercentages, SubscriptionUserType};
 use subscriber::base_functions::{AllBaseTraits, InterpretedResult, SubscriberContract};
 use subscription_fee::{service::ServiceInfo, subtract_payments::Epoch};
 
@@ -126,7 +126,7 @@ where
         >,
         _additional_data: &<Self as SubscriberContract>::AdditionalDataType,
     ) -> Result<InterpretedResult<<Self::SubSc as ContractBase>::Api>, ()> {
-        if service_index == 1 {
+        if service_index == SubscriptionUserType::Premium as usize {
             let user_energy = sc.get_energy_amount(&user_address);
             let energy_threshold = sc.energy_threshold().get();
             if user_energy < energy_threshold {
