@@ -85,7 +85,7 @@ where
 
         b_mock
             .borrow_mut()
-            .execute_tx(&owner, &energy_factory_wrapper, &rust_zero, |sc| {
+            .execute_tx(owner, &energy_factory_wrapper, &rust_zero, |sc| {
                 let mut lock_options = MultiValueEncoded::new();
                 for (option, penalty) in LOCK_OPTIONS.iter().zip(PENALTY_PERCENTAGES.iter()) {
                     lock_options.push((*option, *penalty).into());
@@ -173,7 +173,7 @@ where
 
         b_mock
             .borrow_mut()
-            .execute_tx(&owner, &energy_factory_wrapper, &rust_zero, |sc| {
+            .execute_tx(owner, &energy_factory_wrapper, &rust_zero, |sc| {
                 sc.sc_whitelist_addresses()
                     .add(&managed_address!(farm_wrapper.address_ref()));
             })
@@ -181,7 +181,7 @@ where
 
         b_mock
             .borrow_mut()
-            .execute_tx(&owner, &farm_wrapper, &rust_biguint!(0), |sc| {
+            .execute_tx(owner, &farm_wrapper, &rust_biguint!(0), |sc| {
                 sc.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
 
                 sc.set_boosted_yields_factors(
@@ -195,7 +195,7 @@ where
             .assert_ok();
 
         FarmSetup {
-            b_mock: b_mock.clone(),
+            b_mock: b_mock,
             farm_wrapper,
             energy_factory_wrapper,
         }

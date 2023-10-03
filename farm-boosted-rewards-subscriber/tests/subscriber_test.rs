@@ -24,6 +24,7 @@ static LP_TOKEN_ID: &[u8] = b"LPTOK-123456";
 static REWARD_TOKEN_ID: &[u8] = b"MEX-123456";
 static LOCKED_TOKEN_ID: &[u8] = b"XMEX-123456";
 
+#[allow(type_complexity)]
 fn init_all<
     PairBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
     FarmBuilder: 'static + Copy + Fn() -> farm_with_locked_rewards::ContractObj<DebugApi>,
