@@ -31,7 +31,6 @@ const PER_BLOCK_REWARD_AMOUNT: u64 = 1_000;
 const EPOCHS_IN_YEAR: u64 = 360;
 static LOCK_OPTIONS: &[u64] = &[EPOCHS_IN_YEAR, 2 * EPOCHS_IN_YEAR, 4 * EPOCHS_IN_YEAR];
 static PENALTY_PERCENTAGES: &[u64] = &[4_000, 6_000, 8_000];
-const BOOSTED_YIELDS_PERCENTAGE: u64 = 2_500; // 25%
 const MAX_REWARDS_FACTOR: u64 = 10;
 const USER_REWARDS_ENERGY_CONST: u64 = 3;
 const USER_REWARDS_FARM_CONST: u64 = 2;
@@ -64,6 +63,7 @@ where
         reward_token_id: &[u8],
         locked_token_id: &[u8],
         farming_token_id: &[u8],
+        boosted_yields_percentage: u64,
         pair_address: &Address,
         farm_builder: FarmObjBuilder,
         energy_factory_builder: EnergyFactoryBuilder,
@@ -182,7 +182,7 @@ where
         b_mock
             .borrow_mut()
             .execute_tx(owner, &farm_wrapper, &rust_biguint!(0), |sc| {
-                sc.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
+                sc.set_boosted_yields_rewards_percentage(boosted_yields_percentage);
 
                 sc.set_boosted_yields_factors(
                     managed_biguint!(MAX_REWARDS_FACTOR),

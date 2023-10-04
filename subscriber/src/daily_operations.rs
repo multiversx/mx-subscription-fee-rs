@@ -76,7 +76,6 @@ pub trait DailyOperationsModule:
             service_info: self
                 .service_info(service_id)
                 .get_from_address(&fees_contract_address),
-            // .get(service_index),
             service_index,
             fees_contract_address,
         };
