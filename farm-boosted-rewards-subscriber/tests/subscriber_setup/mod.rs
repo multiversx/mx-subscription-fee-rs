@@ -1,14 +1,20 @@
 use std::{cell::RefCell, rc::Rc};
 
-use multiversx_sc::types::{Address, MultiValueEncoded};
+use auto_farm::common::address_to_id_mapper::AddressId;
+use energy_query::EnergyQueryModule;
+use farm_boosted_rewards_subscriber::{
+    buy_mex::MexActionsPercentages, claim_farm_boosted::ClaimFarmBoostedRewardsModule,
+    SubscriberContractMain,
+};
+use multiversx_sc::{
+    codec::multi_types::MultiValue2,
+    types::{Address, ManagedVec, MultiValueEncoded},
+};
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper, TxResult},
     DebugApi,
 };
-
-use auto_farm::common::address_to_id_mapper::AddressId;
-use farm_boosted_rewards_subscriber::{buy_mex::MexActionsPercentages, SubscriberContractMain};
 use subscriber::service::ServiceModule;
 
 pub const ENERGT_THRESHOLD: u64 = 1_000;
@@ -36,6 +42,7 @@ where
         b_mock: Rc<RefCell<BlockchainStateWrapper>>,
         builder: SubscriberObjBuilder,
         fee_contract_address: &Address,
+        energy_factory_address: &Address,
         owner_addr: &Address,
         reward_token_id: &[u8],
     ) -> Self {
@@ -67,9 +74,11 @@ where
                     managed_token_id!(reward_token_id),
                     standard_mex_actions_percentages,
                     premium_mex_actions_percentages,
-                    managed_address!(fee_contract_address), // TODO - simple lock address
+                    managed_address!(fee_contract_address),
                     LOCKING_PERIOD,
                 );
+
+                sc.set_energy_factory_address(managed_address!(energy_factory_address));
             })
             .assert_ok();
 
@@ -118,6 +127,20 @@ where
     //     )
     // }
 
+    pub fn call_add_farm(&mut self, farm_address: &Address) -> u32 {
+        let mut farm_id = 0u32;
+        let _ = self.b_mock.borrow_mut().execute_tx(
+            &self.owner_addr,
+            &self.sub_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                farm_id = sc.add_farm(managed_address!(farm_address));
+            },
+        );
+
+        farm_id
+    }
+
     pub fn call_subtract_payment(&mut self, service_index: usize) -> TxResult {
         self.b_mock.borrow_mut().execute_tx(
             &self.owner_addr,
@@ -129,15 +152,25 @@ where
         )
     }
 
-    pub fn call_perform_action(&mut self, service_index: usize, user_id: AddressId) -> TxResult {
+    pub fn call_perform_claim_boosted(
+        &mut self,
+        service_index: usize,
+        user_id: AddressId,
+        farms_list: Vec<AddressId>,
+    ) -> TxResult {
         self.b_mock.borrow_mut().execute_tx(
             &self.owner_addr,
             &self.sub_wrapper,
             &rust_biguint!(0),
             |sc| {
-                let mut users = MultiValueEncoded::new();
-                users.push(user_id);
-                sc.perform_action_endpoint(service_index, users);
+                let mut user_farms_pairs_to_claim = MultiValueEncoded::new();
+                let user_farms = ManagedVec::from(farms_list);
+                user_farms_pairs_to_claim.push(MultiValue2::from((user_id, user_farms)));
+
+                sc.perform_claim_rewards_operations_endpoint(
+                    service_index,
+                    user_farms_pairs_to_claim,
+                );
             },
         )
     }

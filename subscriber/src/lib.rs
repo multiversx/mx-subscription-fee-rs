@@ -72,10 +72,7 @@ where
         _sc: &Self::SubSc,
         _user_address: ManagedAddress<<Self::SubSc as ContractBase>::Api>,
         _service_index: usize,
-        _service_info: &ManagedVec<
-            <Self::SubSc as ContractBase>::Api,
-            ServiceInfo<<T as ContractBase>::Api>,
-        >,
+        _service_info: &ServiceInfo<<Self::SubSc as ContractBase>::Api>,
         _additional_data: &<Self as SubscriberContract>::AdditionalDataType,
     ) -> Result<InterpretedResult<<Self::SubSc as ContractBase>::Api>, ()> {
         let result = InterpretedResult {

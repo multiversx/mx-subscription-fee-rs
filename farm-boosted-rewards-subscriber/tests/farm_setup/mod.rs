@@ -47,7 +47,7 @@ where
     pub b_mock: Rc<RefCell<BlockchainStateWrapper>>,
     pub farm_wrapper:
         ContractObjWrapper<farm_with_locked_rewards::ContractObj<DebugApi>, FarmObjBuilder>,
-    energy_factory_wrapper:
+    pub energy_factory_wrapper:
         ContractObjWrapper<energy_factory::ContractObj<DebugApi>, EnergyFactoryBuilder>,
 }
 

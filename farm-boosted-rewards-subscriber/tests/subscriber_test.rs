@@ -95,6 +95,7 @@ fn init_all<
         b_mock_rc.clone(),
         subscriber_builder,
         sub_sc.s_wrapper.address_ref(),
+        farm_setup.energy_factory_wrapper.address_ref(),
         &owner,
         REWARD_TOKEN_ID,
     );
@@ -124,6 +125,9 @@ fn claim_boosted_rewards_for_user_test() {
             farm_boosted_rewards_subscriber::contract_obj,
         );
 
+    let farm_id = subscriber_setup.call_add_farm(farm_setup.farm_wrapper.address_ref());
+    let farm_list = vec![farm_id];
+
     let user = b_mock_rc
         .borrow_mut()
         .create_user_account(&rust_biguint!(0));
@@ -131,11 +135,18 @@ fn claim_boosted_rewards_for_user_test() {
     b_mock_rc.borrow_mut().set_block_epoch(2);
 
     subscriber_setup
-        .call_register_service(vec![(
-            farm_setup.farm_wrapper.address_ref().clone(),
-            Some(FIRST_TOKEN_ID.to_vec()),
-            1_000,
-        )])
+        .call_register_service(vec![
+            (
+                farm_setup.farm_wrapper.address_ref().clone(),
+                Some(FIRST_TOKEN_ID.to_vec()),
+                1_000,
+            ),
+            (
+                farm_setup.farm_wrapper.address_ref().clone(),
+                Some(FIRST_TOKEN_ID.to_vec()),
+                500,
+            ),
+        ])
         .assert_ok();
 
     subscription_setup
@@ -150,8 +161,9 @@ fn claim_boosted_rewards_for_user_test() {
         .call_deposit(&user, FIRST_TOKEN_ID, 1_000_000)
         .assert_ok();
 
+    let normal_service = 0;
     subscription_setup
-        .call_subscribe(&user, vec![(1, 0, SubscriptionType::Weekly)])
+        .call_subscribe(&user, vec![(1, normal_service, SubscriptionType::Weekly)])
         .assert_ok();
 
     // Generate farm rewards
@@ -186,7 +198,9 @@ fn claim_boosted_rewards_for_user_test() {
         .assert_ok();
 
     subscriber_setup.call_subtract_payment(0).assert_ok();
-    subscriber_setup.call_perform_action(0, user_id).assert_ok();
+    subscriber_setup
+        .call_perform_claim_boosted(0, user_id, farm_list.clone())
+        .assert_ok();
 
     // Check that the subscriber claimed the boosted amount for the user
     let boosted_rewards = 2_500;
@@ -207,7 +221,9 @@ fn claim_boosted_rewards_for_user_test() {
     );
 
     // try perform operation again, same epoch
-    subscriber_setup.call_perform_action(0, user_id).assert_ok();
+    subscriber_setup
+        .call_perform_claim_boosted(0, user_id, farm_list.clone())
+        .assert_ok();
 
     // user has the same balance
     b_mock_rc
@@ -229,7 +245,9 @@ fn claim_boosted_rewards_for_user_test() {
 
     b_mock_rc.borrow_mut().set_block_epoch(11);
 
-    subscriber_setup.call_perform_action(0, user_id).assert_ok();
+    subscriber_setup
+        .call_perform_claim_boosted(0, user_id, farm_list)
+        .assert_ok();
 
     // still same balance, subtraction is done manually once per month
     b_mock_rc.borrow().check_esdt_balance(
@@ -261,6 +279,9 @@ fn claim_boosted_rewards_for_user_multiple_farms_test() {
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );
+    let farm_id1 = subscriber_setup.call_add_farm(farm_setup.farm_wrapper.address_ref());
+    let farm_id2 = subscriber_setup.call_add_farm(farm_setup2.farm_wrapper.address_ref());
+    let farm_list = vec![farm_id1, farm_id2];
 
     let user = b_mock_rc
         .borrow_mut()
@@ -295,8 +316,9 @@ fn claim_boosted_rewards_for_user_multiple_farms_test() {
         .call_deposit(&user, FIRST_TOKEN_ID, 1_000_000)
         .assert_ok();
 
+    let normal_service = 0;
     subscription_setup
-        .call_subscribe(&user, vec![(1, 0, SubscriptionType::Weekly)])
+        .call_subscribe(&user, vec![(1, normal_service, SubscriptionType::Weekly)])
         .assert_ok();
 
     // Generate farm rewards
@@ -348,7 +370,9 @@ fn claim_boosted_rewards_for_user_multiple_farms_test() {
 
     // Call subscriber action
     subscriber_setup.call_subtract_payment(0).assert_ok();
-    subscriber_setup.call_perform_action(0, user_id).assert_ok();
+    subscriber_setup
+        .call_perform_claim_boosted(0, user_id, farm_list.clone())
+        .assert_ok();
 
     // Check that the subscriber claimed the boosted amount for the user, for both farms
     let farm1_boosted_rewards = 2_500;
@@ -375,7 +399,9 @@ fn claim_boosted_rewards_for_user_multiple_farms_test() {
     );
 
     // try perform operation again, same epoch
-    subscriber_setup.call_perform_action(0, user_id).assert_ok();
+    subscriber_setup
+        .call_perform_claim_boosted(0, user_id, farm_list.clone())
+        .assert_ok();
 
     // user has the same balance
     b_mock_rc
@@ -402,7 +428,9 @@ fn claim_boosted_rewards_for_user_multiple_farms_test() {
 
     b_mock_rc.borrow_mut().set_block_epoch(11);
 
-    subscriber_setup.call_perform_action(0, user_id).assert_ok();
+    subscriber_setup
+        .call_perform_claim_boosted(0, user_id, farm_list)
+        .assert_ok();
 
     // still same balance, subtraction is done manually once per month
     b_mock_rc.borrow().check_esdt_balance(
@@ -412,6 +440,149 @@ fn claim_boosted_rewards_for_user_multiple_farms_test() {
     );
 }
 
-// TODO - implement the following tests
 #[test]
-fn claim_boosted_rewards_for_premium_user_test() {}
+fn claim_boosted_rewards_for_premium_user_test() {
+    let (b_mock_rc, _pair_setup, mut farm_setup, mut subscription_setup, mut subscriber_setup) =
+        init_all(
+            pair::contract_obj,
+            farm_with_locked_rewards::contract_obj,
+            energy_factory::contract_obj,
+            subscription_fee::contract_obj,
+            farm_boosted_rewards_subscriber::contract_obj,
+        );
+
+    let farm_id = subscriber_setup.call_add_farm(farm_setup.farm_wrapper.address_ref());
+    let farm_list = vec![farm_id];
+
+    let user = b_mock_rc
+        .borrow_mut()
+        .create_user_account(&rust_biguint!(0));
+    let user_id = 1;
+    b_mock_rc.borrow_mut().set_block_epoch(2);
+
+    subscriber_setup
+        .call_register_service(vec![
+            (
+                farm_setup.farm_wrapper.address_ref().clone(),
+                Some(FIRST_TOKEN_ID.to_vec()),
+                1_000,
+            ),
+            (
+                farm_setup.farm_wrapper.address_ref().clone(),
+                Some(FIRST_TOKEN_ID.to_vec()),
+                500,
+            ),
+        ])
+        .assert_ok();
+
+    subscription_setup
+        .call_approve_service(subscriber_setup.sub_wrapper.address_ref())
+        .assert_ok();
+
+    b_mock_rc
+        .borrow_mut()
+        .set_esdt_balance(&user, FIRST_TOKEN_ID, &rust_biguint!(1_000_000));
+
+    subscription_setup
+        .call_deposit(&user, FIRST_TOKEN_ID, 1_000_000)
+        .assert_ok();
+
+    // Subscribe to premium service
+    let premium_service = 1;
+    subscription_setup
+        .call_subscribe(&user, vec![(1, premium_service, SubscriptionType::Weekly)])
+        .assert_ok();
+
+    // Generate farm rewards
+    let user_token_amount = 100_000_000;
+    b_mock_rc
+        .borrow_mut()
+        .set_esdt_balance(&user, LP_TOKEN_ID, &rust_biguint!(user_token_amount));
+    farm_setup.set_user_energy(&user, 1_000, 2, 1);
+    farm_setup.enter_farm(&user, LP_TOKEN_ID, user_token_amount);
+    let _ = farm_setup.claim_rewards(&user, 1, user_token_amount);
+    b_mock_rc.borrow_mut().set_block_nonce(10);
+    b_mock_rc.borrow_mut().set_block_epoch(6);
+    farm_setup.set_user_energy(&user, 1_000, 6, 1);
+    farm_setup.claim_rewards(&user, 2, user_token_amount);
+
+    let base_rewards = 7_500;
+    b_mock_rc
+        .borrow()
+        .check_nft_balance::<LockedTokenAttributes<DebugApi>>(
+            &user,
+            LOCKED_TOKEN_ID,
+            1,
+            &rust_biguint!(base_rewards),
+            None,
+        );
+
+    b_mock_rc.borrow_mut().set_block_epoch(10);
+    farm_setup.set_user_energy(&user, 1_000, 10, 1);
+
+    farm_setup
+        .call_allow_external_claim_boosted_rewards(&user, true)
+        .assert_ok();
+
+    subscriber_setup
+        .call_subtract_payment(premium_service)
+        .assert_ok();
+    subscriber_setup
+        .call_perform_claim_boosted(premium_service, user_id, farm_list.clone())
+        .assert_ok();
+
+    // Check that the subscriber claimed the boosted amount for the user
+    let boosted_rewards = 2_500;
+    b_mock_rc
+        .borrow()
+        .check_nft_balance::<LockedTokenAttributes<DebugApi>>(
+            &user,
+            LOCKED_TOKEN_ID,
+            1,
+            &rust_biguint!(base_rewards + boosted_rewards), // base rewards are minted with the same nonce
+            None,
+        );
+
+    // Different price for premium users
+    b_mock_rc.borrow().check_esdt_balance(
+        subscriber_setup.sub_wrapper.address_ref(),
+        FIRST_TOKEN_ID,
+        &rust_biguint!(500 * 4),
+    );
+
+    // try perform operation again, same epoch
+    subscriber_setup
+        .call_perform_claim_boosted(premium_service, user_id, farm_list.clone())
+        .assert_ok();
+
+    // user has the same balance
+    b_mock_rc
+        .borrow()
+        .check_nft_balance::<LockedTokenAttributes<DebugApi>>(
+            &user,
+            LOCKED_TOKEN_ID,
+            1,
+            &rust_biguint!(base_rewards + boosted_rewards), // base rewards are minted with the same nonce
+            None,
+        );
+
+    // still same subscriber balance, no funds subtracted
+    b_mock_rc.borrow().check_esdt_balance(
+        subscriber_setup.sub_wrapper.address_ref(),
+        FIRST_TOKEN_ID,
+        &rust_biguint!(500 * 4),
+    );
+
+    b_mock_rc.borrow_mut().set_block_epoch(11);
+
+    subscriber_setup
+        .call_perform_claim_boosted(premium_service, user_id, farm_list)
+        .assert_ok();
+
+    // still same balance, subtraction is done manually once per month
+    b_mock_rc.borrow().check_esdt_balance(
+        subscriber_setup.sub_wrapper.address_ref(),
+        FIRST_TOKEN_ID,
+        &rust_biguint!(500 * 4),
+    );
+}
