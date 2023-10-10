@@ -105,7 +105,7 @@ pub trait SubtractPaymentsModule:
             .update(|user_fees| user_fees.deduct_payment(&payment));
 
         match raw_result {
-            Result::Ok(()) => ScResult::Ok(payment.into()),
+            Result::Ok(()) => ScResult::Ok(payment),
             Result::Err(()) => ScResult::Err(()),
         }
     }
