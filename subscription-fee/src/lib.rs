@@ -27,7 +27,7 @@ pub trait SubscriptionFee:
         max_pending_services: usize,
         max_service_info_no: usize,
         price_query_address: ManagedAddress,
-        accepted_tokens: MultiValueEncoded<EgldOrEsdtTokenIdentifier>,
+        accepted_tokens: MultiValueEncoded<TokenIdentifier>,
     ) {
         require!(
             stable_token_id.is_valid_esdt_identifier(),

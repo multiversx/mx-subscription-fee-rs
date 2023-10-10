@@ -1,13 +1,13 @@
 #![no_std]
 #![feature(trait_alias)]
 
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
+
 use core::marker::PhantomData;
 
 use base_functions::{AllBaseTraits, InterpretedResult, SubscriberContract};
 use subscription_fee::service::ServiceInfo;
-
-multiversx_sc::imports!();
-multiversx_sc::derive_imports!();
 
 pub mod base_functions;
 pub mod base_init;

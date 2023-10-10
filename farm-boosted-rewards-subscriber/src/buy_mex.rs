@@ -142,12 +142,7 @@ pub trait BuyMexModule:
             }
 
             let fee = fee_mapper.take();
-            let token_id = if fee.fees.token_identifier.is_egld() {
-                // TODO: Wrap egld and take cost into consideration
-                TokenIdentifier::from("PLACEHOLDER")
-            } else {
-                fee.fees.token_identifier.unwrap_esdt()
-            };
+            let token_id = fee.fees.token_identifier;
 
             let user_address = unsafe { opt_user_address.unwrap_unchecked() };
             self.perform_mex_operations(

@@ -47,7 +47,7 @@ pub trait SubtractPaymentsModule:
         &self,
         service_index: usize,
         user_id: AddressId,
-    ) -> ScResult<EgldOrEsdtTokenPayment, ()> {
+    ) -> ScResult<EsdtTokenPayment, ()> {
         let caller = self.blockchain().get_caller();
         let service_id = self.service_id().get_id_non_zero(&caller);
         let current_epoch = self.blockchain().get_block_epoch();
@@ -80,7 +80,7 @@ pub trait SubtractPaymentsModule:
             None => self.subtract_any_token(user_id, service_info.amount),
         };
         if let ScResult::Ok(payment) = &subtract_result {
-            self.send().direct(
+            self.send().direct_esdt(
                 &caller,
                 &payment.token_identifier,
                 payment.token_nonce,
@@ -96,26 +96,10 @@ pub trait SubtractPaymentsModule:
     fn subtract_specific_token(
         &self,
         user_id: AddressId,
-        token_id: EgldOrEsdtTokenIdentifier,
+        token_id: TokenIdentifier,
         amount: BigUint,
-    ) -> ScResult<EgldOrEsdtTokenPayment, ()> {
-        if token_id.is_egld() {
-            return self.user_deposited_egld(user_id).update(|egld_value| {
-                if *egld_value < amount {
-                    return ScResult::Err(());
-                }
-
-                *egld_value -= &amount;
-
-                ScResult::Ok(EgldOrEsdtTokenPayment::new(
-                    EgldOrEsdtTokenIdentifier::egld(),
-                    0,
-                    amount,
-                ))
-            });
-        }
-
-        let payment = EsdtTokenPayment::new(token_id.unwrap_esdt(), 0, amount);
+    ) -> ScResult<EsdtTokenPayment, ()> {
+        let payment = EsdtTokenPayment::new(token_id, 0, amount);
         let raw_result = self
             .user_deposited_fees(user_id)
             .update(|user_fees| user_fees.deduct_payment(&payment));
@@ -130,7 +114,7 @@ pub trait SubtractPaymentsModule:
         &self,
         user_id: AddressId,
         amount_in_stable_token: BigUint,
-    ) -> ScResult<EgldOrEsdtTokenPayment, ()> {
+    ) -> ScResult<EsdtTokenPayment, ()> {
         let tokens_mapper = self.user_deposited_fees(user_id);
         if tokens_mapper.is_empty() {
             return ScResult::Err(());
@@ -158,8 +142,8 @@ pub trait SubtractPaymentsModule:
             let _ = user_tokens.set(i, &payment);
             tokens_mapper.set(UniquePayments::new_from_unique_payments(user_tokens));
 
-            return ScResult::Ok(EgldOrEsdtTokenPayment::new(
-                EgldOrEsdtTokenIdentifier::esdt(payment.token_identifier),
+            return ScResult::Ok(EsdtTokenPayment::new(
+                payment.token_identifier,
                 0,
                 tokens_to_pay,
             ));

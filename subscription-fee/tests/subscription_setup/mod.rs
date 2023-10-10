@@ -3,20 +3,23 @@
 use std::{cell::RefCell, rc::Rc};
 
 use auto_farm::common::address_to_id_mapper::AddressId;
-use multiversx_sc::types::{
-    Address, EgldOrEsdtTokenIdentifier, MultiValueEncoded, TokenIdentifier,
-};
+use multiversx_sc::types::{Address, MultiValueEncoded};
 use multiversx_sc_scenario::{
-    managed_address, managed_biguint, managed_token_id_wrapped, rust_biguint,
+    managed_address, managed_biguint, managed_token_id, rust_biguint,
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper, TxResult},
     DebugApi,
 };
 use subscription_fee::{
-    fees::FeesModule,
-    service::{ServiceModule, SubscriptionType},
-    subtract_payments::SubtractPaymentsModule,
+    fees::FeesModule, service::ServiceModule, subtract_payments::SubtractPaymentsModule,
     SubscriptionFee,
 };
+
+use crate::{USDC_TOKEN_ID, WEGLD_TOKEN_ID};
+
+pub const MAX_USER_DEPOSITS: usize = 5;
+pub const MIN_USER_DEPOSIT_VALUE: u64 = 1_000_000;
+pub const MAX_PENDING_SERVICES: usize = 5;
+pub const MAX_SERVICE_INFO_NO: usize = 5;
 
 pub struct SubscriptionSetup<SubscriptionObjBuilder>
 where
@@ -52,16 +55,20 @@ where
             .execute_tx(owner_addr, &s_wrapper, &rust_zero, |sc| {
                 let mut args = MultiValueEncoded::new();
                 for arg in accepted_tokens {
-                    if &arg == b"EGLD" {
-                        let token_id = EgldOrEsdtTokenIdentifier::egld();
-                        args.push(token_id);
-                    } else {
-                        let token_id = TokenIdentifier::from_esdt_bytes(arg);
-                        args.push(EgldOrEsdtTokenIdentifier::esdt(token_id));
-                    }
+                    let token_id = managed_token_id!(arg);
+                    args.push(token_id);
                 }
 
-                sc.init(managed_address!(pair_address), args);
+                sc.init(
+                    managed_token_id!(USDC_TOKEN_ID),
+                    managed_token_id!(WEGLD_TOKEN_ID),
+                    MAX_USER_DEPOSITS,
+                    managed_biguint!(MIN_USER_DEPOSIT_VALUE),
+                    MAX_PENDING_SERVICES,
+                    MAX_SERVICE_INFO_NO,
+                    managed_address!(pair_address),
+                    args,
+                );
             })
             .assert_ok();
 
@@ -75,19 +82,20 @@ where
     pub fn call_register_service(
         &mut self,
         caller: &Address,
-        args: Vec<(Address, Option<Vec<u8>>, u64)>,
+        args: Vec<(Address, Option<Vec<u8>>, u64, u64)>,
     ) -> TxResult {
         self.b_mock
             .borrow_mut()
             .execute_tx(caller, &self.s_wrapper, &rust_biguint!(0), |sc| {
                 let mut args_encoded = MultiValueEncoded::new();
                 for arg in args {
-                    let (sc_address, opt_token_id, value) = arg;
+                    let (sc_address, opt_token_id, value, subscription_epochs) = arg;
                     args_encoded.push(
                         (
                             managed_address!(&sc_address),
-                            opt_token_id.map(|token_id| managed_token_id_wrapped!(token_id)),
+                            opt_token_id.map(|token_id| managed_token_id!(token_id)),
                             managed_biguint!(value),
+                            subscription_epochs,
                         )
                             .into(),
                     );
@@ -129,17 +137,13 @@ where
         )
     }
 
-    pub fn call_subscribe(
-        &mut self,
-        caller: &Address,
-        args: Vec<(AddressId, usize, SubscriptionType)>,
-    ) -> TxResult {
+    pub fn call_subscribe(&mut self, caller: &Address, args: Vec<(AddressId, usize)>) -> TxResult {
         self.b_mock
             .borrow_mut()
             .execute_tx(caller, &self.s_wrapper, &rust_biguint!(0), |sc| {
                 let mut managed_args = MultiValueEncoded::new();
                 for arg in args {
-                    managed_args.push((arg.0, arg.1, arg.2).into());
+                    managed_args.push((arg.0, arg.1).into());
                 }
 
                 sc.subscribe(managed_args);
@@ -169,13 +173,8 @@ where
             .execute_tx(caller, &self.s_wrapper, &rust_biguint!(0), |sc| {
                 let mut managed_args = MultiValueEncoded::new();
                 for token in tokens {
-                    managed_args.push(
-                        (
-                            managed_token_id_wrapped!(token.0),
-                            managed_biguint!(token.1),
-                        )
-                            .into(),
-                    );
+                    managed_args
+                        .push((managed_token_id!(token.0), managed_biguint!(token.1)).into());
                 }
 
                 let _ = sc.withdraw_funds(managed_args);

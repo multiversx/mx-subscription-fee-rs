@@ -18,7 +18,7 @@ pub struct SubtractPaymentOperation {
 
 #[derive(TypeAbi, TopEncode, TopDecode)]
 pub struct UserFees<M: ManagedTypeApi> {
-    pub fees: EgldOrEsdtTokenPayment<M>,
+    pub fees: EsdtTokenPayment<M>,
     pub epoch: Epoch,
 }
 
@@ -26,6 +26,7 @@ pub struct PaymentOperationData<M: ManagedTypeApi + StorageMapperApi> {
     pub total_users: usize,
     pub service_index: usize,
     pub current_epoch: Epoch,
+    pub subscription_epochs: Epoch,
     pub fees_contract_address: ManagedAddress<M>,
     pub users_mapper: UnorderedSetMapper<M, AddressId>,
 }
@@ -43,7 +44,7 @@ pub trait ServiceModule:
     fn register_service(
         &self,
         args: MultiValueEncoded<
-            MultiValue4<ManagedAddress, Option<EgldOrEsdtTokenIdentifier>, BigUint, Epoch>,
+            MultiValue4<ManagedAddress, Option<TokenIdentifier>, BigUint, Epoch>,
         >,
     ) {
         let fees_contract_address = self.fees_contract_address().get();
@@ -93,11 +94,16 @@ pub trait ServiceModule:
 
         let users_mapper = self.subscribed_users(service_id, service_index);
         let total_users = users_mapper.len_at_address(&fees_contract_address);
+        let service_info = self
+            .service_info(service_id)
+            .get_from_address(&fees_contract_address)
+            .get(service_index);
         let all_data = PaymentOperationData {
-            current_epoch,
-            fees_contract_address,
-            service_index,
             total_users,
+            service_index,
+            current_epoch,
+            subscription_epochs: service_info.subscription_epochs,
+            fees_contract_address,
             users_mapper,
         };
 
@@ -108,7 +114,7 @@ pub trait ServiceModule:
         match run_result {
             OperationCompletionStatus::Completed => self
                 .next_subtract_epoch(service_index)
-                .set(current_epoch + MONTHLY_EPOCHS),
+                .set(current_epoch + service_info.subscription_epochs),
             OperationCompletionStatus::InterruptedBeforeOutOfGas => self.save_progress(&progress),
         }
 
@@ -124,7 +130,7 @@ pub trait ServiceModule:
     ) -> LoopOp {
         if progress.user_index > all_data.total_users {
             self.next_subtract_epoch(all_data.service_index)
-                .set(all_data.current_epoch + MONTHLY_EPOCHS);
+                .set(all_data.current_epoch + all_data.subscription_epochs);
 
             return STOP_OP;
         }
@@ -184,7 +190,7 @@ pub trait ServiceModule:
         fee_contract_address: ManagedAddress,
         service_index: usize,
         user_id: AddressId,
-    ) -> ScResult<EgldOrEsdtTokenPayment, ()> {
+    ) -> ScResult<EsdtTokenPayment, ()> {
         self.fee_contract_proxy_obj(fee_contract_address)
             .subtract_payment(service_index, user_id)
             .execute_on_dest_context()

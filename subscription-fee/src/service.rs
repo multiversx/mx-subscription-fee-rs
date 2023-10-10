@@ -4,17 +4,18 @@ multiversx_sc::derive_imports!();
 use auto_farm::common::address_to_id_mapper::{AddressId, AddressToIdMapper, NULL_ID};
 
 use crate::subtract_payments::Epoch;
+use crate::{fees, pair_actions};
 
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem)]
 pub struct ServiceInfo<M: ManagedTypeApi> {
     pub sc_address: ManagedAddress<M>,
-    pub opt_payment_token: Option<EgldOrEsdtTokenIdentifier<M>>,
+    pub opt_payment_token: Option<TokenIdentifier<M>>,
     pub amount: BigUint<M>,
     pub subscription_epochs: Epoch,
 }
 
 #[multiversx_sc::module]
-pub trait ServiceModule: crate::fees::FeesModule {
+pub trait ServiceModule: fees::FeesModule + pair_actions::PairActionsModule {
     #[only_owner]
     #[endpoint(setMaxServiceInfoNo)]
     fn set_max_service_info_no(&self, max_service_info_no: usize) {
@@ -29,12 +30,12 @@ pub trait ServiceModule: crate::fees::FeesModule {
         self.max_pending_services().set(max_pending_services);
     }
 
-    /// Arguments are MultiValue3 of sc_address, opt_payment_token and payment_amount
+    /// Arguments are MultiValue4 of sc_address, opt_payment_token, payment_amount and subscription_epochs
     #[endpoint(registerService)]
     fn register_service(
         &self,
         args: MultiValueEncoded<
-            MultiValue4<ManagedAddress, Option<EgldOrEsdtTokenIdentifier>, BigUint, Epoch>,
+            MultiValue4<ManagedAddress, Option<TokenIdentifier>, BigUint, Epoch>,
         >,
     ) {
         require!(!args.is_empty(), "No arguments provided");

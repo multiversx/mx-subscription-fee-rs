@@ -5,21 +5,36 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                            0
+// Endpoints:                           13
 // Async Callback (empty):               1
-// Total number of exported functions:   2
+// Total number of exported functions:  15
 
 #![no_std]
-#![allow(internal_features)]
+
+// Configuration that works with rustc < 1.73.0.
+// TODO: Recommended rustc version: 1.73.0 or newer.
 #![feature(lang_items)]
 
 multiversx_sc_wasm_adapter::allocator!();
 multiversx_sc_wasm_adapter::panic_handler!();
 
 multiversx_sc_wasm_adapter::endpoints! {
-    empty
+    farm_boosted_rewards_subscriber
     (
         init => init
+        performAction => perform_action_endpoint
+        getEnergyThreshold => energy_threshold
+        addMexPair => add_mex_pair
+        removeMexPair => remove_mex_pair
+        performMexOperations => perform_mex_operations_endpoint
+        getNormalUserPercentage => normal_user_percentage
+        getPremiumUserPercentage => premium_user_percentage
+        getTotalFees => total_fees
+        registerService => register_service
+        unregisterService => unregister_service
+        subtractPayment => subtract_payment_endpoint
+        setEnergyFactoryAddress => set_energy_factory_address
+        getEnergyFactoryAddress => energy_factory_address
     )
 }
 
