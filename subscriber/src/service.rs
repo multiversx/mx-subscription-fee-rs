@@ -3,7 +3,7 @@ use multiversx_sc::api::StorageMapperApi;
 use multiversx_sc_modules::ongoing_operation::{LoopOp, CONTINUE_OP, STOP_OP};
 use subscription_fee::{
     service::ProxyTrait as _,
-    subtract_payments::{Epoch, MyVeryOwnScResult, ProxyTrait as _, MONTHLY_EPOCHS},
+    subtract_payments::{Epoch, ScResult, ProxyTrait as _, MONTHLY_EPOCHS},
 };
 
 multiversx_sc::imports!();
@@ -149,7 +149,7 @@ pub trait ServiceModule:
             all_data.service_index,
             user_id,
         );
-        if let MyVeryOwnScResult::Ok(fees) = subtract_result {
+        if let ScResult::Ok(fees) = subtract_result {
             let user_fees = UserFees {
                 fees,
                 epoch: all_data.current_epoch,
@@ -184,7 +184,7 @@ pub trait ServiceModule:
         fee_contract_address: ManagedAddress,
         service_index: usize,
         user_id: AddressId,
-    ) -> MyVeryOwnScResult<EgldOrEsdtTokenPayment, ()> {
+    ) -> ScResult<EgldOrEsdtTokenPayment, ()> {
         self.fee_contract_proxy_obj(fee_contract_address)
             .subtract_payment(service_index, user_id)
             .execute_on_dest_context()

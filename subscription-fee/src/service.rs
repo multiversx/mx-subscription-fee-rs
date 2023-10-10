@@ -10,7 +10,7 @@ pub struct ServiceInfo<M: ManagedTypeApi> {
     pub amount: BigUint<M>,
 }
 
-#[derive(TypeAbi, TopEncode, TopDecode)]
+#[derive(TypeAbi, TopEncode, TopDecode, PartialEq)]
 pub enum SubscriptionType {
     None,
     Daily,
@@ -20,7 +20,21 @@ pub enum SubscriptionType {
 
 #[multiversx_sc::module]
 pub trait ServiceModule: crate::fees::FeesModule {
-    /// Arguments are pairs of sc_address, opt_payment_token and payment_amount
+    #[only_owner]
+    #[endpoint(setMaxServiceInfoNo)]
+    fn set_max_service_info_no(&self, max_service_info_no: usize) {
+        require!(max_service_info_no > 0, "Value must be greater than o");
+        self.max_service_info_no().set(max_service_info_no);
+    }
+
+    #[only_owner]
+    #[endpoint(setMaxPendingServices)]
+    fn set_max_pending_services(&self, max_pending_services: usize) {
+        require!(max_pending_services > 0, "Value must be greater than o");
+        self.max_pending_services().set(max_pending_services);
+    }
+
+    /// Arguments are MultiValue3 of sc_address, opt_payment_token and payment_amount
     #[endpoint(registerService)]
     fn register_service(
         &self,
@@ -59,11 +73,28 @@ pub trait ServiceModule: crate::fees::FeesModule {
         self.pending_service_info(&service_address)
             .update(|existing_services| existing_services.extend(services.iter()));
         let _ = self.pending_services().insert(service_address);
+        let max_pending_services = self.max_pending_services().get();
+        require!(
+            self.pending_services().len() <= max_pending_services,
+            "Maximum number of pendind services reached"
+        );
     }
 
     #[endpoint(unregisterService)]
     fn unregister_service(&self) {
         let service_address = self.blockchain().get_caller();
+        let service_id = self.service_id().remove_by_address(&service_address);
+        if service_id != NULL_ID {
+            self.service_info(service_id).clear();
+        }
+
+        let _ = self.pending_services().swap_remove(&service_address);
+        self.pending_service_info(&service_address).clear();
+    }
+
+    #[only_owner]
+    #[endpoint(unregisterServiceByOwner)]
+    fn unregister_service_by_owner(&self, service_address: ManagedAddress) {
         let service_id = self.service_id().remove_by_address(&service_address);
         if service_id != NULL_ID {
             self.service_info(service_id).clear();
@@ -85,10 +116,16 @@ pub trait ServiceModule: crate::fees::FeesModule {
         let service_info = self.pending_service_info(&service_address).take();
         self.service_info(service_id).set(&service_info);
 
+        let max_service_info_no = self.max_service_info_no().get();
+        require!(
+            self.service_info(service_id).get().len() <= max_service_info_no,
+            "Maximum service info no reached"
+        );
+
         let _ = self.pending_services().swap_remove(&service_address);
     }
 
-    /// subscribe with pair of service_id, service index, subscription type
+    /// subscribe with the following arguments: service_id, service index, subscription type
     #[endpoint]
     fn subscribe(
         &self,
@@ -97,8 +134,8 @@ pub trait ServiceModule: crate::fees::FeesModule {
         let caller = self.blockchain().get_caller();
         let caller_id = self.user_id().get_id_non_zero(&caller);
 
-        for pair in services {
-            let (service_id, service_index, subscription_type) = pair.into_tuple();
+        for service in services {
+            let (service_id, service_index, subscription_type) = service.into_tuple();
             let service_options = self.service_info(service_id).get();
             require!(
                 service_index < service_options.len(),
@@ -123,8 +160,8 @@ pub trait ServiceModule: crate::fees::FeesModule {
         let caller = self.blockchain().get_caller();
         let caller_id = self.user_id().get_id_non_zero(&caller);
 
-        for pair in services {
-            let (service_id, service_index) = pair.into_tuple();
+        for service in services {
+            let (service_id, service_index) = service.into_tuple();
             let service_options = self.service_info(service_id).get();
             require!(
                 service_index < service_options.len(),
@@ -146,6 +183,10 @@ pub trait ServiceModule: crate::fees::FeesModule {
     #[storage_mapper("pendingServices")]
     fn pending_services(&self) -> UnorderedSetMapper<ManagedAddress>;
 
+    #[view(getMaxPendingServices)]
+    #[storage_mapper("maxPendingServices")]
+    fn max_pending_services(&self) -> SingleValueMapper<usize>;
+
     #[storage_mapper("pendingServiceInfo")]
     fn pending_service_info(
         &self,
@@ -159,6 +200,9 @@ pub trait ServiceModule: crate::fees::FeesModule {
         &self,
         service_id: AddressId,
     ) -> SingleValueMapper<ManagedVec<ServiceInfo<Self::Api>>>;
+
+    #[storage_mapper("maxServiceInfoNo")]
+    fn max_service_info_no(&self) -> SingleValueMapper<usize>;
 
     #[view(getSubscribedUsers)]
     #[storage_mapper("subscribedUsers")]

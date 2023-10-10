@@ -20,6 +20,13 @@ pub trait FeesModule {
         }
     }
 
+    #[only_owner]
+    #[endpoint(setMaxUserDeposits)]
+    fn set_max_user_deposits(&self, max_user_deposits: usize) {
+        require!(max_user_deposits > 0, "Value must be greater than o");
+        self.max_user_deposits().set(max_user_deposits);
+    }
+
     #[payable("*")]
     #[endpoint]
     fn deposit(&self) {
@@ -125,6 +132,12 @@ pub trait FeesModule {
         } else {
             dest_mapper.update(|fees| {
                 fees.add_payment(payment.unwrap_esdt());
+
+                let max_user_deposits = self.max_user_deposits().get();
+                require!(
+                    fees.clone().into_payments().len() < max_user_deposits,
+                    "Maximum number of deposits per user reached"
+                );
             });
         }
     }
@@ -132,6 +145,12 @@ pub trait FeesModule {
     #[view(getAcceptedFeesTokens)]
     #[storage_mapper("acceptedFeesTokens")]
     fn accepted_fees_tokens(&self) -> UnorderedSetMapper<EgldOrEsdtTokenIdentifier>;
+
+    #[storage_mapper("stableTokenId")]
+    fn stable_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
+
+    #[storage_mapper("wegldTokenId")]
+    fn wegld_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 
     #[storage_mapper("userId")]
     fn user_id(&self) -> AddressToIdMapper<Self::Api>;
@@ -142,6 +161,14 @@ pub trait FeesModule {
         &self,
         user_id: AddressId,
     ) -> SingleValueMapper<UniquePayments<Self::Api>>;
+
+    #[view(getMaxUserDeposits)]
+    #[storage_mapper("maxUserDeposits")]
+    fn max_user_deposits(&self) -> SingleValueMapper<usize>;
+
+    #[view(getMinUserDepositValue)]
+    #[storage_mapper("minUserDepositValue")]
+    fn min_user_deposit_value(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getUserDepositedEgld)]
     #[storage_mapper("userDepositedEgld")]

@@ -15,7 +15,7 @@ pub const MONTHLY_EPOCHS: Epoch = 30;
 
 #[must_use]
 #[derive(Debug, PartialEq, Eq, Clone, TopEncode, TopDecode, TypeAbi)]
-pub enum MyVeryOwnScResult<
+pub enum ScResult<
     T: NestedEncode + NestedDecode + TypeAbi,
     E: NestedEncode + NestedDecode + TypeAbi,
 > {
@@ -24,10 +24,10 @@ pub enum MyVeryOwnScResult<
 }
 
 impl<T: NestedEncode + NestedDecode + TypeAbi, E: NestedEncode + NestedDecode + TypeAbi>
-    MyVeryOwnScResult<T, E>
+    ScResult<T, E>
 {
     pub fn is_err(&self) -> bool {
-        matches!(*self, MyVeryOwnScResult::Err(_))
+        matches!(*self, ScResult::Err(_))
     }
 
     /// # Safety
@@ -35,8 +35,8 @@ impl<T: NestedEncode + NestedDecode + TypeAbi, E: NestedEncode + NestedDecode + 
     /// Calling this method on an [`Err`] is *[undefined behavior]*.
     pub unsafe fn unwrap_unchecked(self) -> T {
         match self {
-            MyVeryOwnScResult::Ok(t) => t,
-            MyVeryOwnScResult::Err(_) => unreachable_unchecked(),
+            ScResult::Ok(t) => t,
+            ScResult::Err(_) => unreachable_unchecked(),
         }
     }
 }
@@ -53,32 +53,39 @@ pub trait SubtractPaymentsModule:
         &self,
         service_index: usize,
         user_id: AddressId,
-    ) -> MyVeryOwnScResult<EgldOrEsdtTokenPayment, ()> {
+    ) -> ScResult<EgldOrEsdtTokenPayment, ()> {
         let caller = self.blockchain().get_caller();
         let service_id = self.service_id().get_id_non_zero(&caller);
         let current_epoch = self.blockchain().get_block_epoch();
 
         let last_action_mapper = self.user_last_action_epoch(user_id, service_id, service_index);
         let last_action_epoch = last_action_mapper.get();
-        if last_action_epoch > 0 {
-            let next_subtract_epoch = last_action_epoch + MONTHLY_EPOCHS;
-            require!(next_subtract_epoch <= current_epoch, "Cannot subtract yet");
-        }
-
-        let opt_user_address = self.user_id().get_address(user_id);
-        if opt_user_address.is_none() {
-            return MyVeryOwnScResult::Err(());
-        }
 
         let subscription_type = self
             .subscription_type(user_id, service_id, service_index)
             .get();
-        let multiplier = match subscription_type {
-            SubscriptionType::Daily => MONTHLY_EPOCHS / DAILY_EPOCHS,
-            SubscriptionType::Weekly => MONTHLY_EPOCHS / WEEKLY_EPOCHS,
-            SubscriptionType::Monthly => 1,
-            SubscriptionType::None => return MyVeryOwnScResult::Err(()),
+
+        if subscription_type == SubscriptionType::None {
+            return ScResult::Err(());
+        }
+
+        let subscription_type_epochs_no = self.get_subscription_type_epochs_no(subscription_type);
+
+        let next_subtract_epoch = if last_action_epoch > 0 {
+            last_action_epoch + subscription_type_epochs_no
+        } else {
+            current_epoch
         };
+        require!(next_subtract_epoch <= current_epoch, "Cannot subtract yet");
+
+        let opt_user_address = self.user_id().get_address(user_id);
+        if opt_user_address.is_none() {
+            return ScResult::Err(());
+        }
+
+        // TODO
+        // multiplier is not exact for WEEKLY_EPOCHS
+        let multiplier = MONTHLY_EPOCHS / subscription_type_epochs_no;
 
         let service_info = self.service_info(service_id).get().get(service_index);
         let subtract_result = match service_info.opt_payment_token {
@@ -87,16 +94,16 @@ pub trait SubtractPaymentsModule:
             }
             None => self.subtract_any_token(user_id, service_info.amount * multiplier),
         };
-        if let MyVeryOwnScResult::Ok(payment) = &subtract_result {
+        if let ScResult::Ok(payment) = &subtract_result {
             self.send().direct(
                 &caller,
                 &payment.token_identifier,
                 payment.token_nonce,
                 &payment.amount,
             );
-        }
 
-        last_action_mapper.set(current_epoch);
+            last_action_mapper.set(next_subtract_epoch);
+        }
 
         subtract_result
     }
@@ -106,16 +113,16 @@ pub trait SubtractPaymentsModule:
         user_id: AddressId,
         token_id: EgldOrEsdtTokenIdentifier,
         amount: BigUint,
-    ) -> MyVeryOwnScResult<EgldOrEsdtTokenPayment, ()> {
+    ) -> ScResult<EgldOrEsdtTokenPayment, ()> {
         if token_id.is_egld() {
             return self.user_deposited_egld(user_id).update(|egld_value| {
                 if *egld_value < amount {
-                    return MyVeryOwnScResult::Err(());
+                    return ScResult::Err(());
                 }
 
                 *egld_value -= &amount;
 
-                MyVeryOwnScResult::Ok(EgldOrEsdtTokenPayment::new(
+                ScResult::Ok(EgldOrEsdtTokenPayment::new(
                     EgldOrEsdtTokenIdentifier::egld(),
                     0,
                     amount,
@@ -129,46 +136,60 @@ pub trait SubtractPaymentsModule:
             .update(|user_fees| user_fees.deduct_payment(&payment));
 
         match raw_result {
-            Result::Ok(()) => MyVeryOwnScResult::Ok(payment.into()),
-            Result::Err(()) => MyVeryOwnScResult::Err(()),
+            Result::Ok(()) => ScResult::Ok(payment.into()),
+            Result::Err(()) => ScResult::Err(()),
         }
     }
 
     fn subtract_any_token(
         &self,
         user_id: AddressId,
-        amount: BigUint,
-    ) -> MyVeryOwnScResult<EgldOrEsdtTokenPayment, ()> {
+        amount_in_stable_token: BigUint,
+    ) -> ScResult<EgldOrEsdtTokenPayment, ()> {
         let tokens_mapper = self.user_deposited_fees(user_id);
         if tokens_mapper.is_empty() {
-            return MyVeryOwnScResult::Err(());
+            return ScResult::Err(());
         }
 
         let mut user_tokens = tokens_mapper.get().into_payments();
         for i in 0..user_tokens.len() {
             let mut payment = user_tokens.get(i);
-            let query_result = self.get_price(payment.token_identifier.clone(), amount.clone());
+            let query_result =
+                self.get_price(payment.token_identifier.clone(), payment.amount.clone());
             if query_result.is_err() {
                 continue;
             }
 
             let price = unsafe { query_result.unwrap_unchecked() };
-            if price > payment.amount {
+            // TODO
+            // Think about progressive deduction
+            if price < amount_in_stable_token {
                 continue;
             }
 
-            payment.amount -= &price;
+            let tokens_to_pay = &payment.amount * &amount_in_stable_token / price;
+
+            payment.amount -= &tokens_to_pay;
             let _ = user_tokens.set(i, &payment);
             tokens_mapper.set(UniquePayments::new_from_unique_payments(user_tokens));
 
-            return MyVeryOwnScResult::Ok(EgldOrEsdtTokenPayment::new(
+            return ScResult::Ok(EgldOrEsdtTokenPayment::new(
                 EgldOrEsdtTokenIdentifier::esdt(payment.token_identifier),
                 0,
-                price,
+                tokens_to_pay,
             ));
         }
 
-        MyVeryOwnScResult::Err(())
+        ScResult::Err(())
+    }
+
+    fn get_subscription_type_epochs_no(&self, subscription_type: SubscriptionType) -> Epoch {
+        match subscription_type {
+            SubscriptionType::Daily => DAILY_EPOCHS,
+            SubscriptionType::Weekly => WEEKLY_EPOCHS,
+            SubscriptionType::Monthly => MONTHLY_EPOCHS,
+            SubscriptionType::None => 0,
+        }
     }
 
     #[storage_mapper("userLastActionEpoch")]
