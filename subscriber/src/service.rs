@@ -3,7 +3,7 @@ use multiversx_sc::api::StorageMapperApi;
 use multiversx_sc_modules::ongoing_operation::{LoopOp, CONTINUE_OP, STOP_OP};
 use subscription_fee::{
     service::ProxyTrait as _,
-    subtract_payments::{Epoch, ScResult, ProxyTrait as _, MONTHLY_EPOCHS},
+    subtract_payments::{Epoch, ProxyTrait as _, ScResult},
 };
 
 multiversx_sc::imports!();
@@ -43,7 +43,7 @@ pub trait ServiceModule:
     fn register_service(
         &self,
         args: MultiValueEncoded<
-            MultiValue3<ManagedAddress, Option<EgldOrEsdtTokenIdentifier>, BigUint>,
+            MultiValue4<ManagedAddress, Option<EgldOrEsdtTokenIdentifier>, BigUint, Epoch>,
         >,
     ) {
         let fees_contract_address = self.fees_contract_address().get();

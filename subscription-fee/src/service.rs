@@ -1,21 +1,16 @@
-use auto_farm::common::address_to_id_mapper::{AddressId, AddressToIdMapper, NULL_ID};
-
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
+
+use auto_farm::common::address_to_id_mapper::{AddressId, AddressToIdMapper, NULL_ID};
+
+use crate::subtract_payments::Epoch;
 
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem)]
 pub struct ServiceInfo<M: ManagedTypeApi> {
     pub sc_address: ManagedAddress<M>,
     pub opt_payment_token: Option<EgldOrEsdtTokenIdentifier<M>>,
     pub amount: BigUint<M>,
-}
-
-#[derive(TypeAbi, TopEncode, TopDecode, PartialEq)]
-pub enum SubscriptionType {
-    None,
-    Daily,
-    Weekly,
-    Monthly,
+    pub subscription_epochs: Epoch,
 }
 
 #[multiversx_sc::module]
@@ -39,7 +34,7 @@ pub trait ServiceModule: crate::fees::FeesModule {
     fn register_service(
         &self,
         args: MultiValueEncoded<
-            MultiValue3<ManagedAddress, Option<EgldOrEsdtTokenIdentifier>, BigUint>,
+            MultiValue4<ManagedAddress, Option<EgldOrEsdtTokenIdentifier>, BigUint, Epoch>,
         >,
     ) {
         require!(!args.is_empty(), "No arguments provided");
@@ -50,7 +45,7 @@ pub trait ServiceModule: crate::fees::FeesModule {
 
         let mut services = ManagedVec::<Self::Api, _>::new();
         for arg in args {
-            let (sc_address, opt_payment_token, amount) = arg.into_tuple();
+            let (sc_address, opt_payment_token, amount, subscription_epochs) = arg.into_tuple();
             require!(
                 self.blockchain().is_smart_contract(&sc_address) && !sc_address.is_zero(),
                 "Invalid SC address"
@@ -67,6 +62,7 @@ pub trait ServiceModule: crate::fees::FeesModule {
                 sc_address,
                 opt_payment_token,
                 amount,
+                subscription_epochs,
             });
         }
 
@@ -127,27 +123,18 @@ pub trait ServiceModule: crate::fees::FeesModule {
 
     /// subscribe with the following arguments: service_id, service index, subscription type
     #[endpoint]
-    fn subscribe(
-        &self,
-        services: MultiValueEncoded<MultiValue3<AddressId, usize, SubscriptionType>>,
-    ) {
+    fn subscribe(&self, services: MultiValueEncoded<MultiValue2<AddressId, usize>>) {
         let caller = self.blockchain().get_caller();
         let caller_id = self.user_id().get_id_non_zero(&caller);
 
         for service in services {
-            let (service_id, service_index, subscription_type) = service.into_tuple();
+            let (service_id, service_index) = service.into_tuple();
             let service_options = self.service_info(service_id).get();
             require!(
                 service_index < service_options.len(),
                 "Invalid service index"
             );
-            require!(
-                !matches!(subscription_type, SubscriptionType::None),
-                "Invalid subscription type"
-            );
 
-            self.subscription_type(caller_id, service_id, service_index)
-                .set(subscription_type);
             let _ = self
                 .subscribed_users(service_id, service_index)
                 .insert(caller_id);
@@ -168,8 +155,6 @@ pub trait ServiceModule: crate::fees::FeesModule {
                 "Invalid service index"
             );
 
-            self.subscription_type(caller_id, service_id, service_index)
-                .clear();
             let _ = self
                 .subscribed_users(service_id, service_index)
                 .swap_remove(&caller_id);
@@ -211,12 +196,4 @@ pub trait ServiceModule: crate::fees::FeesModule {
         service_id: AddressId,
         service_index: usize,
     ) -> UnorderedSetMapper<AddressId>;
-
-    #[storage_mapper("subscriptionType")]
-    fn subscription_type(
-        &self,
-        user_id: AddressId,
-        service_id: AddressId,
-        service_index: usize,
-    ) -> SingleValueMapper<SubscriptionType>;
 }

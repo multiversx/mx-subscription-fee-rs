@@ -2,16 +2,10 @@ use core::hint::unreachable_unchecked;
 
 use auto_farm::common::{address_to_id_mapper::AddressId, unique_payments::UniquePayments};
 
-use crate::service::SubscriptionType;
-
 pub type Epoch = u64;
 
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
-
-pub const DAILY_EPOCHS: Epoch = 1;
-pub const WEEKLY_EPOCHS: Epoch = 7;
-pub const MONTHLY_EPOCHS: Epoch = 30;
 
 #[must_use]
 #[derive(Debug, PartialEq, Eq, Clone, TopEncode, TopDecode, TypeAbi)]
@@ -61,18 +55,16 @@ pub trait SubtractPaymentsModule:
         let last_action_mapper = self.user_last_action_epoch(user_id, service_id, service_index);
         let last_action_epoch = last_action_mapper.get();
 
-        let subscription_type = self
-            .subscription_type(user_id, service_id, service_index)
-            .get();
+        let service_info = self.service_info(service_id).get().get(service_index);
 
-        if subscription_type == SubscriptionType::None {
+        let subscription_epochs = service_info.subscription_epochs;
+
+        if subscription_epochs == 0 {
             return ScResult::Err(());
         }
 
-        let subscription_type_epochs_no = self.get_subscription_type_epochs_no(subscription_type);
-
         let next_subtract_epoch = if last_action_epoch > 0 {
-            last_action_epoch + subscription_type_epochs_no
+            last_action_epoch + subscription_epochs
         } else {
             current_epoch
         };
@@ -83,16 +75,9 @@ pub trait SubtractPaymentsModule:
             return ScResult::Err(());
         }
 
-        // TODO
-        // multiplier is not exact for WEEKLY_EPOCHS
-        let multiplier = MONTHLY_EPOCHS / subscription_type_epochs_no;
-
-        let service_info = self.service_info(service_id).get().get(service_index);
         let subtract_result = match service_info.opt_payment_token {
-            Some(token_id) => {
-                self.subtract_specific_token(user_id, token_id, service_info.amount * multiplier)
-            }
-            None => self.subtract_any_token(user_id, service_info.amount * multiplier),
+            Some(token_id) => self.subtract_specific_token(user_id, token_id, service_info.amount),
+            None => self.subtract_any_token(user_id, service_info.amount),
         };
         if let ScResult::Ok(payment) = &subtract_result {
             self.send().direct(
@@ -181,15 +166,6 @@ pub trait SubtractPaymentsModule:
         }
 
         ScResult::Err(())
-    }
-
-    fn get_subscription_type_epochs_no(&self, subscription_type: SubscriptionType) -> Epoch {
-        match subscription_type {
-            SubscriptionType::Daily => DAILY_EPOCHS,
-            SubscriptionType::Weekly => WEEKLY_EPOCHS,
-            SubscriptionType::Monthly => MONTHLY_EPOCHS,
-            SubscriptionType::None => 0,
-        }
     }
 
     #[storage_mapper("userLastActionEpoch")]
