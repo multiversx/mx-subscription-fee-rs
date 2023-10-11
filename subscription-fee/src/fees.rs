@@ -69,16 +69,15 @@ pub trait FeesModule:
 
             let mut opt_found_token_index = None;
             for (index, user_payment) in all_user_tokens.iter().enumerate() {
-                if user_payment.token_identifier == token_id && user_payment.amount >= amount {
+                if user_payment.token_identifier == token_id {
+                    require!(user_payment.amount >= amount, "User balance not enough");
                     output_payments.push(EsdtTokenPayment::new(token_id, 0, amount.clone()));
                     opt_found_token_index = Some(index);
                     break;
                 }
             }
 
-            if opt_found_token_index.is_none() {
-                continue;
-            }
+            require!(opt_found_token_index.is_some(), "Payment was not found");
 
             let token_index = unsafe { opt_found_token_index.unwrap_unchecked() };
             let mut token_info = all_user_tokens.get(token_index);
