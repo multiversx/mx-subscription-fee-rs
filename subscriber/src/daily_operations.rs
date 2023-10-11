@@ -1,3 +1,6 @@
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
+
 use core::borrow::Borrow;
 
 use auto_farm::common::address_to_id_mapper::AddressId;
@@ -6,9 +9,6 @@ use multiversx_sc_modules::ongoing_operation::{LoopOp, CONTINUE_OP, STOP_OP};
 use subscription_fee::service::ServiceInfo;
 
 use crate::base_functions::SubscriberContract;
-
-multiversx_sc::imports!();
-multiversx_sc::derive_imports!();
 
 pub const FIRST_INDEX: usize = 1;
 

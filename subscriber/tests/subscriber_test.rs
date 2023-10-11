@@ -8,7 +8,7 @@ use multiversx_sc_scenario::{
 };
 use pair_setup::PairSetup;
 use subscriber_setup::SubscriberSetup;
-use subscription_fee::{pair_actions::PairActionsModule, service::SubscriptionType};
+use subscription_fee::pair_actions::PairActionsModule;
 use subscription_setup::SubscriptionSetup;
 
 mod pair_setup;
@@ -17,7 +17,10 @@ mod subscription_setup;
 
 static FIRST_TOKEN_ID: &[u8] = b"MYTOKEN-123456";
 static USDC_TOKEN_ID: &[u8] = b"USDC-123456";
+static WEGLD_TOKEN_ID: &[u8] = b"WEGLD-123456";
 static LP_TOKEN_ID: &[u8] = b"LPTOK-123456";
+
+pub const DAILY_SUBSCRIPTION_EPOCHS: u64 = 1;
 
 fn init_all<
     PairBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
@@ -59,7 +62,7 @@ fn init_all<
     b_mock_rc
         .borrow_mut()
         .execute_tx(&owner, &sub_sc.s_wrapper, &rust_biguint!(0), |sc| {
-            sc.add_usdc_pair(
+            sc.add_pair_address(
                 managed_token_id!(FIRST_TOKEN_ID),
                 managed_address!(pair_setup.pair_wrapper.address_ref()),
             );
@@ -99,11 +102,13 @@ fn register_service_test() {
                 subscriber_setup.sub_wrapper.address_ref().clone(),
                 Some(FIRST_TOKEN_ID.to_vec()),
                 1_000,
+                DAILY_SUBSCRIPTION_EPOCHS,
             ),
             (
                 subscriber_setup.sub_wrapper.address_ref().clone(),
                 Some(FIRST_TOKEN_ID.to_vec()),
                 500,
+                DAILY_SUBSCRIPTION_EPOCHS,
             ),
         ])
         .assert_ok();
@@ -127,11 +132,13 @@ fn unregister_test() {
                 subscriber_setup.sub_wrapper.address_ref().clone(),
                 Some(FIRST_TOKEN_ID.to_vec()),
                 1_000,
+                DAILY_SUBSCRIPTION_EPOCHS,
             ),
             (
                 subscriber_setup.sub_wrapper.address_ref().clone(),
                 Some(FIRST_TOKEN_ID.to_vec()),
                 500,
+                DAILY_SUBSCRIPTION_EPOCHS,
             ),
         ])
         .assert_ok();
@@ -157,11 +164,13 @@ fn try_subscribe_after_unregister() {
                 subscriber_setup.sub_wrapper.address_ref().clone(),
                 Some(FIRST_TOKEN_ID.to_vec()),
                 1_000,
+                DAILY_SUBSCRIPTION_EPOCHS,
             ),
             (
                 subscriber_setup.sub_wrapper.address_ref().clone(),
                 Some(FIRST_TOKEN_ID.to_vec()),
                 500,
+                DAILY_SUBSCRIPTION_EPOCHS,
             ),
         ])
         .assert_ok();
@@ -184,7 +193,7 @@ fn try_subscribe_after_unregister() {
         .assert_ok();
 
     subscription_setup
-        .call_subscribe(&user, vec![(1, 0, SubscriptionType::Daily)])
+        .call_subscribe(&user, vec![(1, 0)])
         .assert_user_error("Invalid service index");
 }
 
@@ -202,11 +211,13 @@ fn subscribe_ok_test() {
                 subscriber_setup.sub_wrapper.address_ref().clone(),
                 Some(FIRST_TOKEN_ID.to_vec()),
                 1_000,
+                DAILY_SUBSCRIPTION_EPOCHS,
             ),
             (
                 subscriber_setup.sub_wrapper.address_ref().clone(),
                 Some(FIRST_TOKEN_ID.to_vec()),
                 500,
+                DAILY_SUBSCRIPTION_EPOCHS,
             ),
         ])
         .assert_ok();
@@ -227,7 +238,7 @@ fn subscribe_ok_test() {
         .assert_ok();
 
     subscription_setup
-        .call_subscribe(&user, vec![(1, 0, SubscriptionType::Daily)])
+        .call_subscribe(&user, vec![(1, 0)])
         .assert_ok();
 }
 
@@ -245,11 +256,13 @@ fn perform_daily_action_test() {
                 subscriber_setup.sub_wrapper.address_ref().clone(),
                 Some(FIRST_TOKEN_ID.to_vec()),
                 1_000,
+                DAILY_SUBSCRIPTION_EPOCHS,
             ),
             (
                 subscriber_setup.sub_wrapper.address_ref().clone(),
                 Some(FIRST_TOKEN_ID.to_vec()),
                 500,
+                DAILY_SUBSCRIPTION_EPOCHS,
             ),
         ])
         .assert_ok();
@@ -270,7 +283,7 @@ fn perform_daily_action_test() {
         .assert_ok();
 
     subscription_setup
-        .call_subscribe(&user, vec![(1, 0, SubscriptionType::Daily)])
+        .call_subscribe(&user, vec![(1, 0)])
         .assert_ok();
 
     b_mock_rc.borrow_mut().set_block_epoch(10);
@@ -281,7 +294,7 @@ fn perform_daily_action_test() {
     b_mock_rc.borrow().check_esdt_balance(
         subscriber_setup.sub_wrapper.address_ref(),
         FIRST_TOKEN_ID,
-        &rust_biguint!(1_000 * 30),
+        &rust_biguint!(1_000),
     );
 
     // try perform operation again, same epoch
@@ -291,7 +304,7 @@ fn perform_daily_action_test() {
     b_mock_rc.borrow().check_esdt_balance(
         subscriber_setup.sub_wrapper.address_ref(),
         FIRST_TOKEN_ID,
-        &rust_biguint!(1_000 * 30),
+        &rust_biguint!(1_000),
     );
 
     b_mock_rc.borrow_mut().set_block_epoch(11);
@@ -302,6 +315,6 @@ fn perform_daily_action_test() {
     b_mock_rc.borrow().check_esdt_balance(
         subscriber_setup.sub_wrapper.address_ref(),
         FIRST_TOKEN_ID,
-        &rust_biguint!(1_000 * 30),
+        &rust_biguint!(1_000),
     );
 }

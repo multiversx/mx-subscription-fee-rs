@@ -17,7 +17,7 @@ version = "=0.43.3"
 
 [dependencies.auto-farm]
 git = "https://github.com/multiversx/mx-exchange-tools-sc"
-rev = "3cdc349"
+rev = "5ea1698"
 
 [dev-dependencies.pair]
 git = "https://github.com/multiversx/mx-exchange-sc"

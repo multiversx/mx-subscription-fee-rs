@@ -1,9 +1,10 @@
-use subscription_fee::service::ServiceInfo;
-
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-pub trait AllBaseTraits = crate::service::ServiceModule
+use crate::service;
+use subscription_fee::service::ServiceInfo;
+
+pub trait AllBaseTraits = service::ServiceModule
     + crate::common_storage::CommonStorageModule
     + multiversx_sc_modules::ongoing_operation::OngoingOperationModule;
 

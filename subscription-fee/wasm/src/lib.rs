@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           17
+// Endpoints:                           24
 // Async Callback (empty):               1
-// Total number of exported functions:  19
+// Total number of exported functions:  26
 
 #![no_std]
 
@@ -23,22 +23,29 @@ multiversx_sc_wasm_adapter::endpoints! {
     (
         init => init
         addAcceptedFeesTokens => add_accepted_fees_tokens
+        setMaxUserDeposits => set_max_user_deposits
         deposit => deposit
         withdrawFunds => withdraw_funds
         getAcceptedFeesTokens => accepted_fees_tokens
         getUserDepositedFees => user_deposited_fees
-        getUserDepositedEgld => user_deposited_egld
+        getMaxUserDeposits => max_user_deposits
+        getMinUserDepositValue => min_user_deposit_value
+        getPendingServices => pending_services
+        getMaxPendingServices => max_pending_services
+        getServiceInfo => service_info
+        getSubscribedUsers => subscribed_users
+        setMaxServiceInfoNo => set_max_service_info_no
+        setMaxPendingServices => set_max_pending_services
         registerService => register_service
+        addExtraServices => add_extra_services
         unregisterService => unregister_service
+        unregisterServiceByOwner => unregister_service_by_owner
         approveService => approve_service
         subscribe => subscribe
         unsubscribe => unsubscribe
-        getPendingServices => pending_services
-        getServiceInfo => service_info
-        getSubscribedUsers => subscribed_users
         subtractPayment => subtract_payment
-        addUsdcPair => add_usdc_pair
-        removeUsdcPair => remove_usdc_pair
+        addUsdcPair => add_pair_address
+        removeUsdcPair => remove_pair_data
     )
 }
 

@@ -2,7 +2,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use multiversx_sc::types::{Address, MultiValueEncoded};
 use multiversx_sc_scenario::{
-    managed_address, managed_biguint, managed_token_id_wrapped, rust_biguint,
+    managed_address, managed_biguint, managed_token_id, rust_biguint,
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper, TxResult},
     DebugApi,
 };
@@ -51,7 +51,7 @@ where
 
     pub fn call_register_service(
         &mut self,
-        args: Vec<(Address, Option<Vec<u8>>, u64)>,
+        args: Vec<(Address, Option<Vec<u8>>, u64, u64)>,
     ) -> TxResult {
         self.b_mock.borrow_mut().execute_tx(
             &self.owner_addr,
@@ -60,12 +60,13 @@ where
             |sc| {
                 let mut args_encoded = MultiValueEncoded::new();
                 for arg in args {
-                    let (sc_address, opt_token_id, value) = arg;
+                    let (sc_address, opt_token_id, value, subscription_epochs) = arg;
                     args_encoded.push(
                         (
                             managed_address!(&sc_address),
-                            opt_token_id.map(|token_id| managed_token_id_wrapped!(token_id)),
+                            opt_token_id.map(|token_id| managed_token_id!(token_id)),
                             managed_biguint!(value),
+                            subscription_epochs,
                         )
                             .into(),
                     );
