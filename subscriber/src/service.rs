@@ -43,9 +43,7 @@ pub trait ServiceModule:
     #[endpoint(registerService)]
     fn register_service(
         &self,
-        args: MultiValueEncoded<
-            MultiValue4<ManagedAddress, Option<TokenIdentifier>, BigUint, Epoch>,
-        >,
+        args: MultiValueEncoded<MultiValue3<Option<TokenIdentifier>, BigUint, Epoch>>,
     ) {
         let fees_contract_address = self.fees_contract_address().get();
         let _: () = self

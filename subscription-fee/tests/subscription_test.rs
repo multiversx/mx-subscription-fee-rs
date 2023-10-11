@@ -74,7 +74,7 @@ fn init_test() {
 
 #[test]
 fn register_service_test() {
-    let (b_mock_rc, pair_setup, mut sub_sc) =
+    let (b_mock_rc, _pair_setup, mut sub_sc) =
         init_all(pair::contract_obj, subscription_fee::contract_obj);
     let rust_zero = rust_biguint!(0);
 
@@ -83,7 +83,6 @@ fn register_service_test() {
         .call_register_service(
             &rand_service,
             vec![(
-                pair_setup.pair_wrapper.address_ref().clone(),
                 Some(FIRST_TOKEN_ID.to_vec()),
                 1_000,
                 DAILY_SUBSCRIPTION_EPOCHS,
@@ -94,7 +93,7 @@ fn register_service_test() {
 
 #[test]
 fn approve_test() {
-    let (b_mock_rc, pair_setup, mut sub_sc) =
+    let (b_mock_rc, _pair_setup, mut sub_sc) =
         init_all(pair::contract_obj, subscription_fee::contract_obj);
     let rust_zero = rust_biguint!(0);
 
@@ -103,7 +102,6 @@ fn approve_test() {
         .call_register_service(
             &rand_service,
             vec![(
-                pair_setup.pair_wrapper.address_ref().clone(),
                 Some(FIRST_TOKEN_ID.to_vec()),
                 1_000,
                 DAILY_SUBSCRIPTION_EPOCHS,
@@ -116,7 +114,7 @@ fn approve_test() {
 
 #[test]
 fn unregister_service_test() {
-    let (b_mock_rc, pair_setup, mut sub_sc) =
+    let (b_mock_rc, _pair_setup, mut sub_sc) =
         init_all(pair::contract_obj, subscription_fee::contract_obj);
     let rust_zero = rust_biguint!(0);
 
@@ -125,7 +123,6 @@ fn unregister_service_test() {
         .call_register_service(
             &rand_service,
             vec![(
-                pair_setup.pair_wrapper.address_ref().clone(),
                 Some(FIRST_TOKEN_ID.to_vec()),
                 1_000,
                 DAILY_SUBSCRIPTION_EPOCHS,
@@ -139,7 +136,7 @@ fn unregister_service_test() {
 
 #[test]
 fn subscribe_before_deposit_test() {
-    let (b_mock_rc, pair_setup, mut sub_sc) =
+    let (b_mock_rc, _pair_setup, mut sub_sc) =
         init_all(pair::contract_obj, subscription_fee::contract_obj);
     let rust_zero = rust_biguint!(0);
 
@@ -148,7 +145,6 @@ fn subscribe_before_deposit_test() {
         .call_register_service(
             &rand_service,
             vec![(
-                pair_setup.pair_wrapper.address_ref().clone(),
                 Some(FIRST_TOKEN_ID.to_vec()),
                 1_000,
                 DAILY_SUBSCRIPTION_EPOCHS,
@@ -164,7 +160,7 @@ fn subscribe_before_deposit_test() {
 
 #[test]
 fn subscribe_before_approve_test() {
-    let (b_mock_rc, pair_setup, mut sub_sc) =
+    let (b_mock_rc, _pair_setup, mut sub_sc) =
         init_all(pair::contract_obj, subscription_fee::contract_obj);
     let rust_zero = rust_biguint!(0);
 
@@ -173,7 +169,6 @@ fn subscribe_before_approve_test() {
         .call_register_service(
             &rand_service,
             vec![(
-                pair_setup.pair_wrapper.address_ref().clone(),
                 Some(FIRST_TOKEN_ID.to_vec()),
                 1_000,
                 DAILY_SUBSCRIPTION_EPOCHS,
@@ -197,7 +192,7 @@ fn subscribe_before_approve_test() {
 
 #[test]
 fn subscribe_ok_test() {
-    let (b_mock_rc, pair_setup, mut sub_sc) =
+    let (b_mock_rc, _pair_setup, mut sub_sc) =
         init_all(pair::contract_obj, subscription_fee::contract_obj);
     let rust_zero = rust_biguint!(0);
 
@@ -206,7 +201,6 @@ fn subscribe_ok_test() {
         .call_register_service(
             &rand_service,
             vec![(
-                pair_setup.pair_wrapper.address_ref().clone(),
                 Some(FIRST_TOKEN_ID.to_vec()),
                 1_000,
                 DAILY_SUBSCRIPTION_EPOCHS,
@@ -230,7 +224,7 @@ fn subscribe_ok_test() {
 
 #[test]
 fn subtract_ok_test() {
-    let (b_mock_rc, pair_setup, mut sub_sc) =
+    let (b_mock_rc, _pair_setup, mut sub_sc) =
         init_all(pair::contract_obj, subscription_fee::contract_obj);
     let rust_zero = rust_biguint!(0);
 
@@ -239,7 +233,6 @@ fn subtract_ok_test() {
         .call_register_service(
             &rand_service,
             vec![(
-                pair_setup.pair_wrapper.address_ref().clone(),
                 Some(FIRST_TOKEN_ID.to_vec()),
                 1_000,
                 DAILY_SUBSCRIPTION_EPOCHS,
@@ -273,7 +266,7 @@ fn subtract_ok_test() {
 
 #[test]
 fn try_subtract_twice_same_day() {
-    let (b_mock_rc, pair_setup, mut sub_sc) =
+    let (b_mock_rc, _pair_setup, mut sub_sc) =
         init_all(pair::contract_obj, subscription_fee::contract_obj);
     let rust_zero = rust_biguint!(0);
 
@@ -282,7 +275,6 @@ fn try_subtract_twice_same_day() {
         .call_register_service(
             &rand_service,
             vec![(
-                pair_setup.pair_wrapper.address_ref().clone(),
                 Some(FIRST_TOKEN_ID.to_vec()),
                 1_000,
                 DAILY_SUBSCRIPTION_EPOCHS,
@@ -325,7 +317,7 @@ fn try_subtract_twice_same_day() {
 
 #[test]
 fn any_token_subtract_fee_test() {
-    let (b_mock_rc, pair_setup, mut sub_sc) =
+    let (b_mock_rc, _pair_setup, mut sub_sc) =
         init_all(pair::contract_obj, subscription_fee::contract_obj);
     let rust_zero = rust_biguint!(0);
 
@@ -333,12 +325,7 @@ fn any_token_subtract_fee_test() {
     sub_sc
         .call_register_service(
             &rand_service,
-            vec![(
-                pair_setup.pair_wrapper.address_ref().clone(),
-                None,
-                1_000,
-                DAILY_SUBSCRIPTION_EPOCHS,
-            )],
+            vec![(None, 1_000, DAILY_SUBSCRIPTION_EPOCHS)],
         )
         .assert_ok();
 
@@ -369,7 +356,7 @@ fn any_token_subtract_fee_test() {
 
 #[test]
 fn withdraw_tokens_test() {
-    let (b_mock_rc, pair_setup, mut sub_sc) =
+    let (b_mock_rc, _pair_setup, mut sub_sc) =
         init_all(pair::contract_obj, subscription_fee::contract_obj);
     let rust_zero = rust_biguint!(0);
 
@@ -378,7 +365,6 @@ fn withdraw_tokens_test() {
         .call_register_service(
             &rand_service,
             vec![(
-                pair_setup.pair_wrapper.address_ref().clone(),
                 Some(FIRST_TOKEN_ID.to_vec()),
                 1_000,
                 DAILY_SUBSCRIPTION_EPOCHS,

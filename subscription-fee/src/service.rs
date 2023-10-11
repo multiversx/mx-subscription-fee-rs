@@ -9,7 +9,6 @@ use crate::{fees, pair_actions};
 
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem)]
 pub struct ServiceInfo<M: ManagedTypeApi> {
-    pub sc_address: ManagedAddress<M>,
     pub opt_payment_token: Option<TokenIdentifier<M>>,
     pub amount: BigUint<M>,
     pub subscription_epochs: Epoch,
@@ -33,13 +32,11 @@ pub trait ServiceModule:
         self.max_pending_services().set(max_pending_services);
     }
 
-    /// Arguments are MultiValue4 of sc_address, opt_payment_token, payment_amount and subscription_epochs
+    /// Arguments are MultiValue3 of opt_payment_token, payment_amount and subscription_epochs
     #[endpoint(registerService)]
     fn register_service(
         &self,
-        args: MultiValueEncoded<
-            MultiValue4<ManagedAddress, Option<TokenIdentifier>, BigUint, Epoch>,
-        >,
+        args: MultiValueEncoded<MultiValue3<Option<TokenIdentifier>, BigUint, Epoch>>,
     ) {
         require!(!args.is_empty(), "No arguments provided");
 
@@ -49,11 +46,7 @@ pub trait ServiceModule:
 
         let mut services = ManagedVec::<Self::Api, _>::new();
         for arg in args {
-            let (sc_address, opt_payment_token, amount, subscription_epochs) = arg.into_tuple();
-            require!(
-                self.blockchain().is_smart_contract(&sc_address) && !sc_address.is_zero(),
-                "Invalid SC address"
-            );
+            let (opt_payment_token, amount, subscription_epochs) = arg.into_tuple();
 
             if let Some(token_id) = &opt_payment_token {
                 require!(
@@ -63,7 +56,6 @@ pub trait ServiceModule:
             }
 
             services.push(ServiceInfo {
-                sc_address,
                 opt_payment_token,
                 amount,
                 subscription_epochs,
@@ -83,9 +75,7 @@ pub trait ServiceModule:
     #[endpoint(addExtraServices)]
     fn add_extra_services(
         &self,
-        args: MultiValueEncoded<
-            MultiValue4<ManagedAddress, Option<TokenIdentifier>, BigUint, Epoch>,
-        >,
+        args: MultiValueEncoded<MultiValue3<Option<TokenIdentifier>, BigUint, Epoch>>,
     ) {
         require!(!args.is_empty(), "No arguments provided");
 
@@ -95,11 +85,7 @@ pub trait ServiceModule:
 
         let mut services = ManagedVec::<Self::Api, _>::new();
         for arg in args {
-            let (sc_address, opt_payment_token, amount, subscription_epochs) = arg.into_tuple();
-            require!(
-                self.blockchain().is_smart_contract(&sc_address) && !sc_address.is_zero(),
-                "Invalid SC address"
-            );
+            let (opt_payment_token, amount, subscription_epochs) = arg.into_tuple();
 
             if let Some(token_id) = &opt_payment_token {
                 require!(
@@ -109,7 +95,6 @@ pub trait ServiceModule:
             }
 
             services.push(ServiceInfo {
-                sc_address,
                 opt_payment_token,
                 amount,
                 subscription_epochs,

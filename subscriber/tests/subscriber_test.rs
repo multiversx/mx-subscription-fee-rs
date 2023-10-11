@@ -99,13 +99,11 @@ fn register_service_test() {
     subscriber_setup
         .call_register_service(vec![
             (
-                subscriber_setup.sub_wrapper.address_ref().clone(),
                 Some(FIRST_TOKEN_ID.to_vec()),
                 1_000,
                 DAILY_SUBSCRIPTION_EPOCHS,
             ),
             (
-                subscriber_setup.sub_wrapper.address_ref().clone(),
                 Some(FIRST_TOKEN_ID.to_vec()),
                 500,
                 DAILY_SUBSCRIPTION_EPOCHS,
@@ -129,13 +127,11 @@ fn unregister_test() {
     subscriber_setup
         .call_register_service(vec![
             (
-                subscriber_setup.sub_wrapper.address_ref().clone(),
                 Some(FIRST_TOKEN_ID.to_vec()),
                 1_000,
                 DAILY_SUBSCRIPTION_EPOCHS,
             ),
             (
-                subscriber_setup.sub_wrapper.address_ref().clone(),
                 Some(FIRST_TOKEN_ID.to_vec()),
                 500,
                 DAILY_SUBSCRIPTION_EPOCHS,
@@ -161,13 +157,11 @@ fn try_subscribe_after_unregister() {
     subscriber_setup
         .call_register_service(vec![
             (
-                subscriber_setup.sub_wrapper.address_ref().clone(),
                 Some(FIRST_TOKEN_ID.to_vec()),
                 1_000,
                 DAILY_SUBSCRIPTION_EPOCHS,
             ),
             (
-                subscriber_setup.sub_wrapper.address_ref().clone(),
                 Some(FIRST_TOKEN_ID.to_vec()),
                 500,
                 DAILY_SUBSCRIPTION_EPOCHS,
@@ -208,13 +202,11 @@ fn subscribe_ok_test() {
     subscriber_setup
         .call_register_service(vec![
             (
-                subscriber_setup.sub_wrapper.address_ref().clone(),
                 Some(FIRST_TOKEN_ID.to_vec()),
                 1_000,
                 DAILY_SUBSCRIPTION_EPOCHS,
             ),
             (
-                subscriber_setup.sub_wrapper.address_ref().clone(),
                 Some(FIRST_TOKEN_ID.to_vec()),
                 500,
                 DAILY_SUBSCRIPTION_EPOCHS,
@@ -253,13 +245,11 @@ fn perform_daily_action_test() {
     subscriber_setup
         .call_register_service(vec![
             (
-                subscriber_setup.sub_wrapper.address_ref().clone(),
                 Some(FIRST_TOKEN_ID.to_vec()),
                 1_000,
                 DAILY_SUBSCRIPTION_EPOCHS,
             ),
             (
-                subscriber_setup.sub_wrapper.address_ref().clone(),
                 Some(FIRST_TOKEN_ID.to_vec()),
                 500,
                 DAILY_SUBSCRIPTION_EPOCHS,

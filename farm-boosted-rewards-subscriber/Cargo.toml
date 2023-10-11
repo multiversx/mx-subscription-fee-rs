@@ -36,7 +36,35 @@ rev = "a94a332"
 git = "https://github.com/multiversx/mx-exchange-sc"
 rev = "a94a332"
 
+[dependencies.farm-with-locked-rewards]
+git = "https://github.com/multiversx/mx-exchange-sc"
+rev = "a94a332"
+
+[dev-dependencies.farm-boosted-yields]
+git = "https://github.com/multiversx/mx-exchange-sc"
+rev = "a94a332"
+
 [dev-dependencies.pausable]
+git = "https://github.com/multiversx/mx-exchange-sc"
+rev = "a94a332"
+
+[dev-dependencies.farm_token]
+git = "https://github.com/multiversx/mx-exchange-sc"
+rev = "a94a332"
+
+[dev-dependencies.config]
+git = "https://github.com/multiversx/mx-exchange-sc"
+rev = "a94a332"
+
+[dev-dependencies.sc_whitelist_module]
+git = "https://github.com/multiversx/mx-exchange-sc"
+rev = "a94a332"
+
+[dev-dependencies.simple-lock]
+git = "https://github.com/multiversx/mx-exchange-sc"
+rev = "a94a332"
+
+[dev-dependencies.locking_module]
 git = "https://github.com/multiversx/mx-exchange-sc"
 rev = "a94a332"
 
