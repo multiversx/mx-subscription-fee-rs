@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           23
+// Endpoints:                           24
 // Async Callback (empty):               1
-// Total number of exported functions:  25
+// Total number of exported functions:  26
 
 #![no_std]
 
@@ -37,6 +37,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         setMaxServiceInfoNo => set_max_service_info_no
         setMaxPendingServices => set_max_pending_services
         registerService => register_service
+        addExtraServices => add_extra_services
         unregisterService => unregister_service
         unregisterServiceByOwner => unregister_service_by_owner
         approveService => approve_service

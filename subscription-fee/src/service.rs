@@ -80,6 +80,52 @@ pub trait ServiceModule:
         );
     }
 
+    #[endpoint(addExtraServices)]
+    fn add_extra_services(
+        &self,
+        args: MultiValueEncoded<
+            MultiValue4<ManagedAddress, Option<TokenIdentifier>, BigUint, Epoch>,
+        >,
+    ) {
+        require!(!args.is_empty(), "No arguments provided");
+
+        let service_address = self.blockchain().get_caller();
+        let existing_service_id = self.service_id().get_id(&service_address);
+        require!(existing_service_id != NULL_ID, "Service not registered");
+
+        let mut services = ManagedVec::<Self::Api, _>::new();
+        for arg in args {
+            let (sc_address, opt_payment_token, amount, subscription_epochs) = arg.into_tuple();
+            require!(
+                self.blockchain().is_smart_contract(&sc_address) && !sc_address.is_zero(),
+                "Invalid SC address"
+            );
+
+            if let Some(token_id) = &opt_payment_token {
+                require!(
+                    self.accepted_fees_tokens().contains(token_id),
+                    "Invalid token ID"
+                );
+            }
+
+            services.push(ServiceInfo {
+                sc_address,
+                opt_payment_token,
+                amount,
+                subscription_epochs,
+            });
+        }
+
+        let service_info_mapper = self.service_info(existing_service_id);
+        service_info_mapper.update(|existing_services| existing_services.extend(services.iter()));
+
+        let max_service_info_no = self.max_service_info_no().get();
+        require!(
+            service_info_mapper.get().len() <= max_service_info_no,
+            "Maximum service info no reached"
+        );
+    }
+
     #[endpoint(unregisterService)]
     fn unregister_service(&self) {
         let service_address = self.blockchain().get_caller();
