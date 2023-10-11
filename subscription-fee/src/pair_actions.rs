@@ -14,7 +14,7 @@ pub mod pair_proxy {
 }
 
 #[multiversx_sc::module]
-pub trait PairActionsModule {
+pub trait PairActionsModule: crate::common_storage::CommonStorageModule {
     #[only_owner]
     #[endpoint(addUsdcPair)]
     fn add_pair_address(&self, payment_token_id: TokenIdentifier, pair_address: ManagedAddress) {
@@ -90,19 +90,4 @@ pub trait PairActionsModule {
 
     #[proxy]
     fn pair_proxy(&self, sc_address: ManagedAddress) -> pair_proxy::Proxy<Self::Api>;
-
-    #[storage_mapper("pairAddressForToken")]
-    fn pair_address_for_token(
-        &self,
-        token_id: &TokenIdentifier,
-    ) -> SingleValueMapper<ManagedAddress<Self::Api>>;
-
-    #[storage_mapper("stableTokenId")]
-    fn stable_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
-
-    #[storage_mapper("wegldTokenId")]
-    fn wegld_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
-
-    #[storage_mapper("priceQueryAddress")]
-    fn price_query_address(&self) -> SingleValueMapper<ManagedAddress>;
 }

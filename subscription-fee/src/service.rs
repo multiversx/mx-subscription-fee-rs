@@ -1,8 +1,9 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use auto_farm::common::address_to_id_mapper::{AddressId, AddressToIdMapper, NULL_ID};
+use auto_farm::common::address_to_id_mapper::{AddressId, NULL_ID};
 
+use crate::common_storage;
 use crate::subtract_payments::Epoch;
 use crate::{fees, pair_actions};
 
@@ -15,7 +16,9 @@ pub struct ServiceInfo<M: ManagedTypeApi> {
 }
 
 #[multiversx_sc::module]
-pub trait ServiceModule: fees::FeesModule + pair_actions::PairActionsModule {
+pub trait ServiceModule:
+    fees::FeesModule + pair_actions::PairActionsModule + common_storage::CommonStorageModule
+{
     #[only_owner]
     #[endpoint(setMaxServiceInfoNo)]
     fn set_max_service_info_no(&self, max_service_info_no: usize) {
@@ -159,42 +162,8 @@ pub trait ServiceModule: fees::FeesModule + pair_actions::PairActionsModule {
             let _ = self
                 .subscribed_users(service_id, service_index)
                 .swap_remove(&caller_id);
+            self.user_last_action_epoch(caller_id, service_id, service_index)
+                .clear();
         }
     }
-
-    #[storage_mapper("serviceId")]
-    fn service_id(&self) -> AddressToIdMapper<Self::Api>;
-
-    #[view(getPendingServices)]
-    #[storage_mapper("pendingServices")]
-    fn pending_services(&self) -> UnorderedSetMapper<ManagedAddress>;
-
-    #[view(getMaxPendingServices)]
-    #[storage_mapper("maxPendingServices")]
-    fn max_pending_services(&self) -> SingleValueMapper<usize>;
-
-    #[storage_mapper("pendingServiceInfo")]
-    fn pending_service_info(
-        &self,
-        service_address: &ManagedAddress,
-    ) -> SingleValueMapper<ManagedVec<ServiceInfo<Self::Api>>>;
-
-    // one service may have multiple options
-    #[view(getServiceInfo)]
-    #[storage_mapper("serviceInfo")]
-    fn service_info(
-        &self,
-        service_id: AddressId,
-    ) -> SingleValueMapper<ManagedVec<ServiceInfo<Self::Api>>>;
-
-    #[storage_mapper("maxServiceInfoNo")]
-    fn max_service_info_no(&self) -> SingleValueMapper<usize>;
-
-    #[view(getSubscribedUsers)]
-    #[storage_mapper("subscribedUsers")]
-    fn subscribed_users(
-        &self,
-        service_id: AddressId,
-        service_index: usize,
-    ) -> UnorderedSetMapper<AddressId>;
 }

@@ -30,6 +30,10 @@ multiversx_sc_wasm_adapter::endpoints! {
         getUserDepositedFees => user_deposited_fees
         getMaxUserDeposits => max_user_deposits
         getMinUserDepositValue => min_user_deposit_value
+        getPendingServices => pending_services
+        getMaxPendingServices => max_pending_services
+        getServiceInfo => service_info
+        getSubscribedUsers => subscribed_users
         setMaxServiceInfoNo => set_max_service_info_no
         setMaxPendingServices => set_max_pending_services
         registerService => register_service
@@ -38,10 +42,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         approveService => approve_service
         subscribe => subscribe
         unsubscribe => unsubscribe
-        getPendingServices => pending_services
-        getMaxPendingServices => max_pending_services
-        getServiceInfo => service_info
-        getSubscribedUsers => subscribed_users
         subtractPayment => subtract_payment
         addUsdcPair => add_pair_address
         removeUsdcPair => remove_pair_data

@@ -1,14 +1,14 @@
 multiversx_sc::imports!();
 
-use auto_farm::common::{
-    address_to_id_mapper::{AddressId, AddressToIdMapper},
-    unique_payments::UniquePayments,
-};
+use auto_farm::common::unique_payments::UniquePayments;
 
+use crate::common_storage;
 use crate::pair_actions;
 
 #[multiversx_sc::module]
-pub trait FeesModule: pair_actions::PairActionsModule {
+pub trait FeesModule:
+    pair_actions::PairActionsModule + common_storage::CommonStorageModule
+{
     #[only_owner]
     #[endpoint(addAcceptedFeesTokens)]
     fn add_accepted_fees_tokens(&self, accepted_tokens: MultiValueEncoded<TokenIdentifier>) {
@@ -122,26 +122,4 @@ pub trait FeesModule: pair_actions::PairActionsModule {
             });
         }
     }
-
-    #[view(getAcceptedFeesTokens)]
-    #[storage_mapper("acceptedFeesTokens")]
-    fn accepted_fees_tokens(&self) -> UnorderedSetMapper<TokenIdentifier>;
-
-    #[storage_mapper("userId")]
-    fn user_id(&self) -> AddressToIdMapper<Self::Api>;
-
-    #[view(getUserDepositedFees)]
-    #[storage_mapper("userDepositedFees")]
-    fn user_deposited_fees(
-        &self,
-        user_id: AddressId,
-    ) -> SingleValueMapper<UniquePayments<Self::Api>>;
-
-    #[view(getMaxUserDeposits)]
-    #[storage_mapper("maxUserDeposits")]
-    fn max_user_deposits(&self) -> SingleValueMapper<usize>;
-
-    #[view(getMinUserDepositValue)]
-    #[storage_mapper("minUserDepositValue")]
-    fn min_user_deposit_value(&self) -> SingleValueMapper<BigUint>;
 }

@@ -1,11 +1,11 @@
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
+
 use core::hint::unreachable_unchecked;
 
 use auto_farm::common::{address_to_id_mapper::AddressId, unique_payments::UniquePayments};
 
 pub type Epoch = u64;
-
-multiversx_sc::imports!();
-multiversx_sc::derive_imports!();
 
 #[must_use]
 #[derive(Debug, PartialEq, Eq, Clone, TopEncode, TopDecode, TypeAbi)]
@@ -40,6 +40,7 @@ pub trait SubtractPaymentsModule:
     crate::fees::FeesModule
     + crate::service::ServiceModule
     + crate::pair_actions::PairActionsModule
+    + crate::common_storage::CommonStorageModule
     + multiversx_sc_modules::ongoing_operation::OngoingOperationModule
 {
     #[endpoint(subtractPayment)]
@@ -151,12 +152,4 @@ pub trait SubtractPaymentsModule:
 
         ScResult::Err(())
     }
-
-    #[storage_mapper("userLastActionEpoch")]
-    fn user_last_action_epoch(
-        &self,
-        user_id: AddressId,
-        service_id: AddressId,
-        service_index: usize,
-    ) -> SingleValueMapper<Epoch>;
 }

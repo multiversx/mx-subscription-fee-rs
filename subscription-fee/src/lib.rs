@@ -2,6 +2,7 @@
 
 multiversx_sc::imports!();
 
+pub mod common_storage;
 pub mod fees;
 pub mod pair_actions;
 pub mod service;
@@ -10,6 +11,7 @@ pub mod subtract_payments;
 #[multiversx_sc::contract]
 pub trait SubscriptionFee:
     fees::FeesModule
+    + common_storage::CommonStorageModule
     + service::ServiceModule
     + subtract_payments::SubtractPaymentsModule
     + pair_actions::PairActionsModule

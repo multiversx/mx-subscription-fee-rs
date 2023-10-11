@@ -18,7 +18,6 @@ static USDC_TOKEN_ID: &[u8] = b"USDC-123456";
 static WEGLD_TOKEN_ID: &[u8] = b"WEGLD-123456";
 static LP_TOKEN_ID: &[u8] = b"LPTOK-123456";
 
-pub const MONTHLY_SUBSCRIPTION_EPOCHS: u64 = 30;
 pub const DAILY_SUBSCRIPTION_EPOCHS: u64 = 1;
 
 fn init_all<
@@ -87,7 +86,7 @@ fn register_service_test() {
                 pair_setup.pair_wrapper.address_ref().clone(),
                 Some(FIRST_TOKEN_ID.to_vec()),
                 1_000,
-                MONTHLY_SUBSCRIPTION_EPOCHS,
+                DAILY_SUBSCRIPTION_EPOCHS,
             )],
         )
         .assert_ok();
@@ -107,7 +106,7 @@ fn approve_test() {
                 pair_setup.pair_wrapper.address_ref().clone(),
                 Some(FIRST_TOKEN_ID.to_vec()),
                 1_000,
-                MONTHLY_SUBSCRIPTION_EPOCHS,
+                DAILY_SUBSCRIPTION_EPOCHS,
             )],
         )
         .assert_ok();
@@ -129,7 +128,7 @@ fn unregister_service_test() {
                 pair_setup.pair_wrapper.address_ref().clone(),
                 Some(FIRST_TOKEN_ID.to_vec()),
                 1_000,
-                MONTHLY_SUBSCRIPTION_EPOCHS,
+                DAILY_SUBSCRIPTION_EPOCHS,
             )],
         )
         .assert_ok();
