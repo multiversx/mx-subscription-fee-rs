@@ -98,7 +98,7 @@ pub trait ServiceModule:
             .service_info(service_id)
             .get_from_address(&fees_contract_address)
             .get(service_index);
-        let all_data = PaymentOperationData {
+        let payment_operation_data = PaymentOperationData {
             total_users,
             service_index,
             current_epoch,
@@ -108,7 +108,7 @@ pub trait ServiceModule:
         };
 
         let run_result = self.run_while_it_has_gas(GAS_TO_SAVE_PAYMENT_PROGRESS, || {
-            self.perform_one_sub_operation(&mut progress, &all_data)
+            self.perform_one_sub_operation(&mut progress, &payment_operation_data)
         });
 
         match run_result {
