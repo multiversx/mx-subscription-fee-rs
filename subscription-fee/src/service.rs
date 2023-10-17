@@ -21,15 +21,8 @@ pub trait ServiceModule:
     #[only_owner]
     #[endpoint(setMaxServiceInfoNo)]
     fn set_max_service_info_no(&self, max_service_info_no: usize) {
-        require!(max_service_info_no > 0, "Value must be greater than o");
+        require!(max_service_info_no > 0, "Value must be greater than 0");
         self.max_service_info_no().set(max_service_info_no);
-    }
-
-    #[only_owner]
-    #[endpoint(setMaxPendingServices)]
-    fn set_max_pending_services(&self, max_pending_services: usize) {
-        require!(max_pending_services > 0, "Value must be greater than o");
-        self.max_pending_services().set(max_pending_services);
     }
 
     /// Arguments are MultiValue3 of opt_payment_token, payment_amount and subscription_epochs
@@ -48,6 +41,7 @@ pub trait ServiceModule:
         for arg in args {
             let (opt_payment_token, amount, subscription_epochs) = arg.into_tuple();
 
+            require!(subscription_epochs > 0, "Subscription epochs must be > 0");
             if let Some(token_id) = &opt_payment_token {
                 require!(
                     self.accepted_fees_tokens().contains(token_id),
@@ -65,11 +59,6 @@ pub trait ServiceModule:
         self.pending_service_info(&service_address)
             .update(|existing_services| existing_services.extend(services.iter()));
         let _ = self.pending_services().insert(service_address);
-        let max_pending_services = self.max_pending_services().get();
-        require!(
-            self.pending_services().len() <= max_pending_services,
-            "Maximum number of pendind services reached"
-        );
     }
 
     #[endpoint(addExtraServices)]
@@ -87,6 +76,7 @@ pub trait ServiceModule:
         for arg in args {
             let (opt_payment_token, amount, subscription_epochs) = arg.into_tuple();
 
+            require!(subscription_epochs > 0, "Subscription epochs must be > 0");
             if let Some(token_id) = &opt_payment_token {
                 require!(
                     self.accepted_fees_tokens().contains(token_id),

@@ -22,7 +22,7 @@ pub trait FeesModule:
     #[only_owner]
     #[endpoint(setMaxUserDeposits)]
     fn set_max_user_deposits(&self, max_user_deposits: usize) {
-        require!(max_user_deposits > 0, "Value must be greater than o");
+        require!(max_user_deposits > 0, "Value must be greater than 0");
         self.max_user_deposits().set(max_user_deposits);
     }
 

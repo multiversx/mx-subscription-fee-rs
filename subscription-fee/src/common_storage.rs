@@ -46,10 +46,6 @@ pub trait CommonStorageModule {
     #[storage_mapper("pendingServices")]
     fn pending_services(&self) -> UnorderedSetMapper<ManagedAddress>;
 
-    #[view(getMaxPendingServices)]
-    #[storage_mapper("maxPendingServices")]
-    fn max_pending_services(&self) -> SingleValueMapper<usize>;
-
     #[storage_mapper("pendingServiceInfo")]
     fn pending_service_info(
         &self,
