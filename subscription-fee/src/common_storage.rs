@@ -23,10 +23,6 @@ pub trait CommonStorageModule {
         user_id: AddressId,
     ) -> SingleValueMapper<UniquePayments<Self::Api>>;
 
-    #[view(getMaxUserDeposits)]
-    #[storage_mapper("maxUserDeposits")]
-    fn max_user_deposits(&self) -> SingleValueMapper<usize>;
-
     #[view(getMinUserDepositValue)]
     #[storage_mapper("minUserDepositValue")]
     fn min_user_deposit_value(&self) -> SingleValueMapper<BigUint>;
@@ -59,9 +55,6 @@ pub trait CommonStorageModule {
         &self,
         service_id: AddressId,
     ) -> SingleValueMapper<ManagedVec<ServiceInfo<Self::Api>>>;
-
-    #[storage_mapper("maxServiceInfoNo")]
-    fn max_service_info_no(&self) -> SingleValueMapper<usize>;
 
     #[view(getSubscribedUsers)]
     #[storage_mapper("subscribedUsers")]

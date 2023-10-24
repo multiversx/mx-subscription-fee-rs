@@ -4,6 +4,7 @@ use auto_farm::common::unique_payments::UniquePayments;
 
 use crate::common_storage;
 use crate::pair_actions;
+use crate::service::MAX_USER_DEPOSITS;
 
 #[multiversx_sc::module]
 pub trait FeesModule:
@@ -17,13 +18,6 @@ pub trait FeesModule:
 
             let _ = self.accepted_fees_tokens().insert(token);
         }
-    }
-
-    #[only_owner]
-    #[endpoint(setMaxUserDeposits)]
-    fn set_max_user_deposits(&self, max_user_deposits: usize) {
-        require!(max_user_deposits > 0, "Value must be greater than 0");
-        self.max_user_deposits().set(max_user_deposits);
     }
 
     #[payable("*")]
@@ -113,9 +107,8 @@ pub trait FeesModule:
             dest_mapper.update(|fees| {
                 fees.add_payment(payment);
 
-                let max_user_deposits = self.max_user_deposits().get();
                 require!(
-                    fees.clone().into_payments().len() < max_user_deposits,
+                    fees.clone().into_payments().len() <= MAX_USER_DEPOSITS,
                     "Maximum number of deposits per user reached"
                 );
             });

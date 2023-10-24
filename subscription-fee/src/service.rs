@@ -7,6 +7,9 @@ use crate::common_storage;
 use crate::subtract_payments::Epoch;
 use crate::{fees, pair_actions};
 
+pub const MAX_USER_DEPOSITS: usize = 20;
+pub const MAX_SERVICES_LENGTH: usize = 20;
+
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem)]
 pub struct ServiceInfo<M: ManagedTypeApi> {
     pub opt_payment_token: Option<TokenIdentifier<M>>,
@@ -18,13 +21,6 @@ pub struct ServiceInfo<M: ManagedTypeApi> {
 pub trait ServiceModule:
     fees::FeesModule + pair_actions::PairActionsModule + common_storage::CommonStorageModule
 {
-    #[only_owner]
-    #[endpoint(setMaxServiceInfoNo)]
-    fn set_max_service_info_no(&self, max_service_info_no: usize) {
-        require!(max_service_info_no > 0, "Value must be greater than 0");
-        self.max_service_info_no().set(max_service_info_no);
-    }
-
     /// Arguments are MultiValue3 of opt_payment_token, payment_amount and subscription_epochs
     #[endpoint(registerService)]
     fn register_service(
@@ -57,7 +53,13 @@ pub trait ServiceModule:
         }
 
         self.pending_service_info(&service_address)
-            .update(|existing_services| existing_services.extend(services.iter()));
+            .update(|existing_services| {
+                existing_services.extend(services.iter());
+                require!(
+                    existing_services.len() <= MAX_SERVICES_LENGTH,
+                    "Maximum services length reached"
+                );
+            });
         let _ = self.pending_services().insert(service_address);
     }
 
@@ -92,13 +94,13 @@ pub trait ServiceModule:
         }
 
         let service_info_mapper = self.service_info(existing_service_id);
-        service_info_mapper.update(|existing_services| existing_services.extend(services.iter()));
-
-        let max_service_info_no = self.max_service_info_no().get();
-        require!(
-            service_info_mapper.get().len() <= max_service_info_no,
-            "Maximum service info no reached"
-        );
+        service_info_mapper.update(|existing_services| {
+            existing_services.extend(services.iter());
+            require!(
+                existing_services.len() <= MAX_SERVICES_LENGTH,
+                "Maximum services length reached"
+            );
+        });
     }
 
     #[endpoint(unregisterService)]
@@ -137,10 +139,9 @@ pub trait ServiceModule:
         let service_info = self.pending_service_info(&service_address).take();
         self.service_info(service_id).set(&service_info);
 
-        let max_service_info_no = self.max_service_info_no().get();
         require!(
-            self.service_info(service_id).get().len() <= max_service_info_no,
-            "Maximum service info no reached"
+            self.service_info(service_id).get().len() <= MAX_SERVICES_LENGTH,
+            "Maximum services lenght reached"
         );
 
         let _ = self.pending_services().swap_remove(&service_address);
@@ -163,6 +164,9 @@ pub trait ServiceModule:
             let _ = self
                 .subscribed_users(service_id, service_index)
                 .insert(caller_id);
+
+            self.user_last_action_epoch(caller_id, service_id, service_index)
+                .clear();
         }
     }
 
@@ -174,11 +178,6 @@ pub trait ServiceModule:
 
         for service in services {
             let (service_id, service_index) = service.into_tuple();
-            let service_options = self.service_info(service_id).get();
-            require!(
-                service_index < service_options.len(),
-                "Invalid service index"
-            );
 
             let _ = self
                 .subscribed_users(service_id, service_index)

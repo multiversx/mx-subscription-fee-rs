@@ -12,9 +12,7 @@ use multiversx_sc_scenario::{
 use subscription_fee::{fees::FeesModule, service::ServiceModule, SubscriptionFee};
 
 use crate::{USDC_TOKEN_ID, WEGLD_TOKEN_ID};
-pub const MAX_USER_DEPOSITS: usize = 5;
 pub const MIN_USER_DEPOSIT_VALUE: u64 = 1_000_000;
-pub const MAX_SERVICE_INFO_NO: usize = 5;
 
 pub struct SubscriptionSetup<SubscriptionObjBuilder>
 where
@@ -57,9 +55,7 @@ where
                 sc.init(
                     managed_token_id!(USDC_TOKEN_ID),
                     managed_token_id!(WEGLD_TOKEN_ID),
-                    MAX_USER_DEPOSITS,
                     managed_biguint!(MIN_USER_DEPOSIT_VALUE),
-                    MAX_SERVICE_INFO_NO,
                     managed_address!(pair_address),
                     args,
                 )
