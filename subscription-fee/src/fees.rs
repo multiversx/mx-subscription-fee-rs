@@ -20,6 +20,17 @@ pub trait FeesModule:
         }
     }
 
+    #[only_owner]
+    #[endpoint(setMinDepositValue)]
+    fn set_min_deposit_value(&self, token_id: TokenIdentifier, min_token_deposit_value: BigUint) {
+        if min_token_deposit_value == BigUint::zero() {
+            self.min_token_deposit_value(&token_id).clear();
+        } else {
+            self.min_token_deposit_value(&token_id)
+                .set(min_token_deposit_value);
+        }
+    }
+
     #[payable("*")]
     #[endpoint]
     fn deposit(&self) {
@@ -37,9 +48,11 @@ pub trait FeesModule:
         require!(payment_value_result.is_ok(), "Could not get payment value");
 
         let payment_value = unsafe { payment_value_result.unwrap_unchecked() };
-        let min_user_deposit_value = self.min_user_deposit_value().get();
+        let min_token_deposit_value = self
+            .min_token_deposit_value(&payment.token_identifier)
+            .get();
         require!(
-            payment_value > min_user_deposit_value,
+            payment_value >= min_token_deposit_value,
             "Payment value is lesser than the minimum accepted"
         );
 

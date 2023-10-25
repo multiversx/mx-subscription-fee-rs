@@ -57,6 +57,11 @@ pub trait SubtractPaymentsModule:
         let next_payment_epoch = next_payment_mapper.get();
 
         require!(next_payment_epoch <= current_epoch, "Cannot subtract yet");
+        require!(
+            self.subscribed_users(service_id, service_index)
+                .contains(&user_id),
+            "User not subscriber to the service"
+        );
 
         let service_info = self.service_info(service_id).get().get(service_index);
 

@@ -24,7 +24,6 @@ pub trait SubscriptionFee:
         &self,
         stable_token_id: TokenIdentifier,
         wegld_token_id: TokenIdentifier,
-        min_user_deposit_value: BigUint,
         price_query_address: ManagedAddress,
         accepted_tokens: MultiValueEncoded<TokenIdentifier>,
     ) {
@@ -37,10 +36,6 @@ pub trait SubscriptionFee:
             "WEGLD token not valid"
         );
         require!(
-            min_user_deposit_value > 0,
-            "Min user deposit value must be greater than 0"
-        );
-        require!(
             self.blockchain().is_smart_contract(&price_query_address),
             "Invalid price query address"
         );
@@ -49,7 +44,5 @@ pub trait SubscriptionFee:
         self.wegld_token_id().set_if_empty(wegld_token_id);
         self.price_query_address().set_if_empty(price_query_address);
         self.add_accepted_fees_tokens(accepted_tokens);
-        self.min_user_deposit_value()
-            .set_if_empty(min_user_deposit_value);
     }
 }
