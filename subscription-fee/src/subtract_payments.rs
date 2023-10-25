@@ -60,7 +60,7 @@ pub trait SubtractPaymentsModule:
         require!(
             self.subscribed_users(service_id, service_index)
                 .contains(&user_id),
-            "User not subscriber to the service"
+            "User is not subscribed to the service"
         );
 
         let service_info = self.service_info(service_id).get().get(service_index);
