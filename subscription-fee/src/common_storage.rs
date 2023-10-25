@@ -27,8 +27,8 @@ pub trait CommonStorageModule {
     #[storage_mapper("minUserDepositValue")]
     fn min_user_deposit_value(&self) -> SingleValueMapper<BigUint>;
 
-    #[storage_mapper("userLastActionEpoch")]
-    fn user_last_action_epoch(
+    #[storage_mapper("userNextPaymentEpoch")]
+    fn user_next_payment_epoch(
         &self,
         user_id: AddressId,
         service_id: AddressId,

@@ -164,9 +164,6 @@ pub trait ServiceModule:
             let _ = self
                 .subscribed_users(service_id, service_index)
                 .insert(caller_id);
-
-            self.user_last_action_epoch(caller_id, service_id, service_index)
-                .clear();
         }
     }
 
@@ -182,7 +179,7 @@ pub trait ServiceModule:
             let _ = self
                 .subscribed_users(service_id, service_index)
                 .swap_remove(&caller_id);
-            self.user_last_action_epoch(caller_id, service_id, service_index)
+            self.user_next_payment_epoch(caller_id, service_id, service_index)
                 .clear();
         }
     }
