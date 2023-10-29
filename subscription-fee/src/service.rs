@@ -147,7 +147,7 @@ pub trait ServiceModule:
         let _ = self.pending_services().swap_remove(&service_address);
     }
 
-    /// subscribe with the following arguments: service_id, service index, subscription type
+    /// subscribe with the following arguments: service_id, service index
     #[endpoint]
     fn subscribe(&self, services: MultiValueEncoded<MultiValue2<AddressId, usize>>) {
         let caller = self.blockchain().get_caller();
