@@ -23,9 +23,9 @@ pub trait CommonStorageModule {
         user_id: AddressId,
     ) -> SingleValueMapper<UniquePayments<Self::Api>>;
 
-    #[view(getMinTokenDepositValue)]
-    #[storage_mapper("minTokenDepositValue")]
-    fn min_token_deposit_value(&self, token_id: &TokenIdentifier) -> SingleValueMapper<BigUint>;
+    #[view(getMinStableTokenDepositValue)]
+    #[storage_mapper("minStableTokenDepositValue")]
+    fn min_stable_token_deposit_value(&self) -> SingleValueMapper<BigUint>;
 
     #[storage_mapper("userNextPaymentEpoch")]
     fn user_next_payment_epoch(
