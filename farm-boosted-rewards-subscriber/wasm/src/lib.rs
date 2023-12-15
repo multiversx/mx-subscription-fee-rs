@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           17
+// Endpoints:                           19
 // Async Callback (empty):               1
-// Total number of exported functions:  19
+// Total number of exported functions:  21
 
 #![no_std]
 
@@ -37,6 +37,8 @@ multiversx_sc_wasm_adapter::endpoints! {
         performMexOperations => perform_mex_operations_endpoint
         registerService => register_service
         unregisterService => unregister_service
+        getFeesContractAddress => fees_contract_address
+        getUserFees => user_fees
         setEnergyFactoryAddress => set_energy_factory_address
         getEnergyFactoryAddress => energy_factory_address
     )

@@ -91,9 +91,11 @@ pub trait CommonSubscriberModule {
         sc_address: ManagedAddress,
     ) -> subscription_fee::Proxy<Self::Api>;
 
+    #[view(getFeesContractAddress)]
     #[storage_mapper("feesContractAddress")]
     fn fees_contract_address(&self) -> SingleValueMapper<ManagedAddress>;
 
+    #[view(getUserFees)]
     #[storage_mapper("userFees")]
     fn user_fees(
         &self,
