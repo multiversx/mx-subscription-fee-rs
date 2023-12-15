@@ -3,7 +3,7 @@ multiversx_sc::derive_imports!();
 
 use core::hint::unreachable_unchecked;
 
-use auto_farm::common::{address_to_id_mapper::AddressId, unique_payments::UniquePayments};
+use auto_farm::common::unique_payments::UniquePayments;
 
 pub type Epoch = u64;
 

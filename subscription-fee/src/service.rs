@@ -1,14 +1,14 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use auto_farm::common::address_to_id_mapper::{AddressId, NULL_ID};
-
 use crate::common_storage;
 use crate::subtract_payments::Epoch;
 use crate::{fees, pair_actions};
 
 pub const MAX_USER_DEPOSITS: usize = 20;
 pub const MAX_SERVICES_LENGTH: usize = 20;
+
+pub const NULL_ID: AddressId = 0;
 
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem)]
 pub struct ServiceInfo<M: ManagedTypeApi> {

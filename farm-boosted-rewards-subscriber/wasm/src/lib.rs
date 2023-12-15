@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           15
+// Endpoints:                           17
 // Async Callback (empty):               1
-// Total number of exported functions:  17
+// Total number of exported functions:  19
 
 #![no_std]
 
@@ -22,19 +22,21 @@ multiversx_sc_wasm_adapter::endpoints! {
     farm_boosted_rewards_subscriber
     (
         init => init
-        addFarm => add_farm
-        removeFarm => remove_farm
-        performClaimRewardsOperations => perform_claim_rewards_operations_endpoint
-        getEnergyThreshold => energy_threshold
-        addMexPair => add_mex_pair
-        removeMexPair => remove_mex_pair
-        performMexOperations => perform_mex_operations_endpoint
+        upgrade => upgrade
+        getSimpleLockAddress => simple_lock_address
+        getLockPeriod => lock_period
         getNormalUserPercentage => normal_user_percentage
         getPremiumUserPercentage => premium_user_percentage
         getTotalFees => total_fees
+        getEnergyThreshold => energy_threshold
+        addFarm => add_farm
+        removeFarm => remove_farm
+        performClaimRewardsOperations => perform_claim_rewards_operations_endpoint
+        subtractPayment => subtract_payment_endpoint
+        claimFees => claim_fees
+        performMexOperations => perform_mex_operations_endpoint
         registerService => register_service
         unregisterService => unregister_service
-        subtractPayment => subtract_payment_endpoint
         setEnergyFactoryAddress => set_energy_factory_address
         getEnergyFactoryAddress => energy_factory_address
     )

@@ -1,21 +1,20 @@
 use std::{cell::RefCell, rc::Rc};
 
-use auto_farm::common::address_to_id_mapper::AddressId;
+use common_subscriber::CommonSubscriberModule;
 use energy_query::EnergyQueryModule;
 use farm_boosted_rewards_subscriber::{
-    buy_mex::MexActionsPercentages, claim_farm_boosted::ClaimFarmBoostedRewardsModule,
-    SubscriberContractMain,
+    claim_farm_boosted::ClaimFarmBoostedRewardsModule, service::ServiceModule,
+    subscriber_config::MexActionsPercentages, SubscriberContractMain,
 };
 use multiversx_sc::{
     codec::multi_types::MultiValue2,
-    types::{Address, ManagedVec, MultiValueEncoded},
+    types::{Address, ManagedVec, MultiValueEncoded}, storage::mappers::AddressId,
 };
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper, TxResult},
     DebugApi,
 };
-use subscriber::service::ServiceModule;
 
 pub const ENERGT_THRESHOLD: u64 = 1_000;
 pub const LOCKING_PERIOD: u64 = 1_440;
@@ -42,6 +41,7 @@ where
         b_mock: Rc<RefCell<BlockchainStateWrapper>>,
         builder: SubscriberObjBuilder,
         fee_contract_address: &Address,
+        pair_address: &Address,
         energy_factory_address: &Address,
         owner_addr: &Address,
         reward_token_id: &[u8],
@@ -60,12 +60,12 @@ where
                 let standard_mex_actions_percentages = MexActionsPercentages {
                     lock: 9_000,
                     fees: 800,
-                    mex_burn: 200,
+                    burn: 200,
                 };
                 let premium_mex_actions_percentages = MexActionsPercentages {
                     lock: 9_500,
                     fees: 300,
-                    mex_burn: 200,
+                    burn: 200,
                 };
 
                 sc.init(
@@ -74,7 +74,8 @@ where
                     managed_token_id!(reward_token_id),
                     standard_mex_actions_percentages,
                     premium_mex_actions_percentages,
-                    managed_address!(fee_contract_address),
+                    managed_address!(energy_factory_address),
+                    managed_address!(pair_address),
                     LOCKING_PERIOD,
                 );
 
@@ -138,13 +139,21 @@ where
         farm_id
     }
 
-    pub fn call_subtract_payment(&mut self, service_index: usize) -> TxResult {
+    pub fn call_subtract_payment(
+        &mut self,
+        service_index: usize,
+        user_ids_vec: Vec<AddressId>,
+    ) -> TxResult {
         self.b_mock.borrow_mut().execute_tx(
             &self.owner_addr,
             &self.sub_wrapper,
             &rust_biguint!(0),
             |sc| {
-                sc.subtract_payment_endpoint(service_index);
+                let mut user_ids = MultiValueEncoded::new();
+                for user_id in user_ids_vec {
+                    user_ids.push(user_id);
+                }
+                sc.subtract_payment_endpoint(service_index, user_ids);
             },
         )
     }

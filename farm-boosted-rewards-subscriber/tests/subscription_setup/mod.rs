@@ -2,8 +2,10 @@
 
 use std::{cell::RefCell, rc::Rc};
 
-use auto_farm::common::address_to_id_mapper::AddressId;
-use multiversx_sc::types::{Address, MultiValueEncoded};
+use multiversx_sc::{
+    storage::mappers::AddressId,
+    types::{Address, MultiValueEncoded},
+};
 use multiversx_sc_scenario::{
     managed_address, managed_token_id, rust_biguint,
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper, TxResult},

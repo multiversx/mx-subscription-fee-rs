@@ -21,24 +21,28 @@ rev = "1416a8b"
 [dependencies.subscription-fee]
 path = "../subscription-fee"
 
-[dependencies.subscriber]
-path = "../subscriber"
+[dependencies.common_subscriber]
+path = "../common/common_subscriber"
 
 [dependencies.energy-query]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "b9f5d2d"
+rev = "56a8e77"
 
 [dependencies.energy-factory]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "b9f5d2d"
+rev = "56a8e77"
 
 [dependencies.pair]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "b9f5d2d"
+rev = "56a8e77"
 
 [dependencies.farm-with-locked-rewards]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "b9f5d2d"
+rev = "56a8e77"
+
+[dependencies.config]
+git = "https://github.com/multiversx/mx-exchange-sc"
+rev = "56a8e77"
 
 [dev-dependencies]
 num-bigint = "0.4.2"
@@ -48,31 +52,27 @@ hex-literal = "0.3.4"
 
 [dev-dependencies.farm-boosted-yields]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "b9f5d2d"
+rev = "56a8e77"
 
 [dev-dependencies.pausable]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "b9f5d2d"
+rev = "56a8e77"
 
 [dev-dependencies.farm_token]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "b9f5d2d"
-
-[dev-dependencies.config]
-git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "b9f5d2d"
+rev = "56a8e77"
 
 [dev-dependencies.sc_whitelist_module]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "b9f5d2d"
+rev = "56a8e77"
 
 [dev-dependencies.simple-lock]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "b9f5d2d"
+rev = "56a8e77"
 
 [dev-dependencies.locking_module]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "b9f5d2d"
+rev = "56a8e77"
 
 [dev-dependencies.multiversx-sc-scenario]
 version = "=0.45.1"
