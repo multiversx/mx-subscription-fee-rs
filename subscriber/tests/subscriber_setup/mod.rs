@@ -49,10 +49,7 @@ where
         }
     }
 
-    pub fn call_register_service(
-        &mut self,
-        args: Vec<(Address, Option<Vec<u8>>, u64, u64)>,
-    ) -> TxResult {
+    pub fn call_register_service(&mut self, args: Vec<(Option<Vec<u8>>, u64, u64)>) -> TxResult {
         self.b_mock.borrow_mut().execute_tx(
             &self.owner_addr,
             &self.sub_wrapper,
@@ -60,10 +57,9 @@ where
             |sc| {
                 let mut args_encoded = MultiValueEncoded::new();
                 for arg in args {
-                    let (sc_address, opt_token_id, value, subscription_epochs) = arg;
+                    let (opt_token_id, value, subscription_epochs) = arg;
                     args_encoded.push(
                         (
-                            managed_address!(&sc_address),
                             opt_token_id.map(|token_id| managed_token_id!(token_id)),
                             managed_biguint!(value),
                             subscription_epochs,

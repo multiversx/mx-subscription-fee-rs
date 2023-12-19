@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           13
+// Endpoints:                           15
 // Async Callback (empty):               1
-// Total number of exported functions:  15
+// Total number of exported functions:  17
 
 #![no_std]
 
@@ -22,7 +22,9 @@ multiversx_sc_wasm_adapter::endpoints! {
     farm_boosted_rewards_subscriber
     (
         init => init
-        performAction => perform_action_endpoint
+        addFarm => add_farm
+        removeFarm => remove_farm
+        performClaimRewardsOperations => perform_claim_rewards_operations_endpoint
         getEnergyThreshold => energy_threshold
         addMexPair => add_mex_pair
         removeMexPair => remove_mex_pair

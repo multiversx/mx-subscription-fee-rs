@@ -9,10 +9,7 @@ use multiversx_sc_scenario::{
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper, TxResult},
     DebugApi,
 };
-use subscription_fee::{
-    fees::FeesModule, service::ServiceModule, subtract_payments::SubtractPaymentsModule,
-    SubscriptionFee,
-};
+use subscription_fee::{fees::FeesModule, service::ServiceModule, SubscriptionFee};
 
 use crate::{USDC_TOKEN_ID, WEGLD_TOKEN_ID};
 
@@ -55,8 +52,7 @@ where
             .execute_tx(owner_addr, &s_wrapper, &rust_zero, |sc| {
                 let mut args = MultiValueEncoded::new();
                 for arg in accepted_tokens {
-                    let token_id = managed_token_id!(arg);
-                    args.push(token_id);
+                    args.push(managed_token_id!(arg));
                 }
 
                 sc.init(
@@ -79,31 +75,6 @@ where
         }
     }
 
-    pub fn call_register_service(
-        &mut self,
-        caller: &Address,
-        args: Vec<(Option<Vec<u8>>, u64, u64)>,
-    ) -> TxResult {
-        self.b_mock
-            .borrow_mut()
-            .execute_tx(caller, &self.s_wrapper, &rust_biguint!(0), |sc| {
-                let mut args_encoded = MultiValueEncoded::new();
-                for arg in args {
-                    let (opt_token_id, value, subscription_epochs) = arg;
-                    args_encoded.push(
-                        (
-                            opt_token_id.map(|token_id| managed_token_id!(token_id)),
-                            managed_biguint!(value),
-                            subscription_epochs,
-                        )
-                            .into(),
-                    );
-                }
-
-                sc.register_service(args_encoded);
-            })
-    }
-
     pub fn call_approve_service(&mut self, service_address: &Address) -> TxResult {
         self.b_mock.borrow_mut().execute_tx(
             &self.owner_addr,
@@ -113,14 +84,6 @@ where
                 sc.approve_service(managed_address!(service_address));
             },
         )
-    }
-
-    pub fn call_unregister_service(&mut self, caller: &Address) -> TxResult {
-        self.b_mock
-            .borrow_mut()
-            .execute_tx(caller, &self.s_wrapper, &rust_biguint!(0), |sc| {
-                sc.unregister_service();
-            })
     }
 
     pub fn call_deposit(&mut self, caller: &Address, token_id: &[u8], amount: u64) -> TxResult {
@@ -146,37 +109,6 @@ where
                 }
 
                 sc.subscribe(managed_args);
-            })
-    }
-
-    pub fn call_subtract_payment(
-        &mut self,
-        caller: &Address,
-        service_index: usize,
-        user_id: AddressId,
-    ) -> TxResult {
-        self.b_mock
-            .borrow_mut()
-            .execute_tx(caller, &self.s_wrapper, &rust_biguint!(0), |sc| {
-                let _ = sc.subtract_payment(service_index, user_id);
-            })
-    }
-
-    pub fn call_withdraw_funds(
-        &mut self,
-        caller: &Address,
-        tokens: Vec<(Vec<u8>, u64)>,
-    ) -> TxResult {
-        self.b_mock
-            .borrow_mut()
-            .execute_tx(caller, &self.s_wrapper, &rust_biguint!(0), |sc| {
-                let mut managed_args = MultiValueEncoded::new();
-                for token in tokens {
-                    managed_args
-                        .push((managed_token_id!(token.0), managed_biguint!(token.1)).into());
-                }
-
-                let _ = sc.withdraw_funds(managed_args);
             })
     }
 }
