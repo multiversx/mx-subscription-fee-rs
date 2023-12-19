@@ -97,9 +97,11 @@ fn init_all<
         b_mock_rc.clone(),
         subscriber_builder,
         sub_sc.s_wrapper.address_ref(),
+        pair_setup.pair_wrapper.address_ref(),
         farm_setup.energy_factory_wrapper.address_ref(),
         &owner,
         REWARD_TOKEN_ID,
+        WEGLD_TOKEN_ID,
     );
 
     (b_mock_rc, pair_setup, farm_setup, sub_sc, subscriber)
@@ -199,7 +201,9 @@ fn claim_boosted_rewards_for_user_test() {
         .call_allow_external_claim_boosted_rewards(&user, true)
         .assert_ok();
 
-    subscriber_setup.call_subtract_payment(0).assert_ok();
+    subscriber_setup
+        .call_subtract_payment(0, vec![user_id])
+        .assert_ok();
     subscriber_setup
         .call_perform_claim_boosted(0, user_id, farm_list.clone())
         .assert_ok();
@@ -371,7 +375,9 @@ fn claim_boosted_rewards_for_user_multiple_farms_test() {
         .assert_ok();
 
     // Call subscriber action
-    subscriber_setup.call_subtract_payment(0).assert_ok();
+    subscriber_setup
+        .call_subtract_payment(0, vec![user_id])
+        .assert_ok();
     subscriber_setup
         .call_perform_claim_boosted(0, user_id, farm_list.clone())
         .assert_ok();
@@ -527,7 +533,7 @@ fn claim_boosted_rewards_for_premium_user_test() {
         .assert_ok();
 
     subscriber_setup
-        .call_subtract_payment(premium_service)
+        .call_subtract_payment(premium_service, vec![user_id])
         .assert_ok();
     subscriber_setup
         .call_perform_claim_boosted(premium_service, user_id, farm_list.clone())

@@ -27,11 +27,11 @@ hex-literal = "0.3.4"
 
 [dev-dependencies.pair]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "b9f5d2d"
+rev = "56a8e77"
 
 [dev-dependencies.pausable]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "b9f5d2d"
+rev = "56a8e77"
 
 [dev-dependencies.multiversx-sc-scenario]
 version = "=0.45.1"

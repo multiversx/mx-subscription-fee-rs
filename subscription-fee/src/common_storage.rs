@@ -1,9 +1,6 @@
 multiversx_sc::imports!();
 
-use auto_farm::common::{
-    address_to_id_mapper::{AddressId, AddressToIdMapper},
-    unique_payments::UniquePayments,
-};
+use auto_farm::common::unique_payments::UniquePayments;
 
 use crate::{service::ServiceInfo, subtract_payments::Epoch};
 
