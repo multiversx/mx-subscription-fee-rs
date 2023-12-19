@@ -16,7 +16,7 @@ pub mod pair_proxy {
 #[multiversx_sc::module]
 pub trait PairActionsModule: crate::common_storage::CommonStorageModule {
     #[only_owner]
-    #[endpoint(addUsdcPair)]
+    #[endpoint(addPairAddress)]
     fn add_pair_address(&self, payment_token_id: TokenIdentifier, pair_address: ManagedAddress) {
         require!(
             payment_token_id.is_valid_esdt_identifier(),
@@ -32,8 +32,8 @@ pub trait PairActionsModule: crate::common_storage::CommonStorageModule {
     }
 
     #[only_owner]
-    #[endpoint(removeUsdcPair)]
-    fn remove_pair_data(&self, token_id: TokenIdentifier) {
+    #[endpoint(removePairAddress)]
+    fn remove_pair_address(&self, token_id: TokenIdentifier) {
         self.pair_address_for_token(&token_id).clear();
     }
 

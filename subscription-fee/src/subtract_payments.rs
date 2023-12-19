@@ -53,8 +53,15 @@ pub trait SubtractPaymentsModule:
         let service_id = self.service_id().get_id_non_zero(&caller);
         let current_epoch = self.blockchain().get_block_epoch();
 
-        let last_action_mapper = self.user_last_action_epoch(user_id, service_id, service_index);
-        let last_action_epoch = last_action_mapper.get();
+        let next_payment_mapper = self.user_next_payment_epoch(user_id, service_id, service_index);
+        let next_payment_epoch = next_payment_mapper.get();
+
+        require!(next_payment_epoch <= current_epoch, "Cannot subtract yet");
+        require!(
+            self.subscribed_users(service_id, service_index)
+                .contains(&user_id),
+            "User is not subscribed to the service"
+        );
 
         let service_info = self.service_info(service_id).get().get(service_index);
 
@@ -63,13 +70,6 @@ pub trait SubtractPaymentsModule:
         if subscription_epochs == 0 {
             return ScResult::Err(());
         }
-
-        let next_subtract_epoch = if last_action_epoch > 0 {
-            last_action_epoch + subscription_epochs
-        } else {
-            current_epoch
-        };
-        require!(next_subtract_epoch <= current_epoch, "Cannot subtract yet");
 
         let opt_user_address = self.user_id().get_address(user_id);
         if opt_user_address.is_none() {
@@ -88,7 +88,7 @@ pub trait SubtractPaymentsModule:
                 &payment.amount,
             );
 
-            last_action_mapper.set(next_subtract_epoch);
+            next_payment_mapper.set(current_epoch + subscription_epochs);
         }
 
         subtract_result

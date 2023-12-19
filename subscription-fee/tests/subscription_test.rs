@@ -404,3 +404,64 @@ fn withdraw_tokens_test() {
         .borrow()
         .check_esdt_balance(&rand_service, FIRST_TOKEN_ID, &rust_biguint!(0));
 }
+
+#[test]
+fn try_substract_from_unsubscribed_user_test() {
+    let (b_mock_rc, _pair_setup, mut sub_sc) =
+        init_all(pair::contract_obj, subscription_fee::contract_obj);
+    let rust_zero = rust_biguint!(0);
+
+    // Create service with 2 service indexes
+    let rand_service = b_mock_rc.borrow_mut().create_user_account(&rust_zero);
+    sub_sc
+        .call_register_service(
+            &rand_service,
+            vec![
+                (
+                    Some(FIRST_TOKEN_ID.to_vec()),
+                    1_000,
+                    DAILY_SUBSCRIPTION_EPOCHS,
+                ),
+                (
+                    Some(FIRST_TOKEN_ID.to_vec()),
+                    500,
+                    DAILY_SUBSCRIPTION_EPOCHS,
+                ),
+            ],
+        )
+        .assert_ok();
+
+    sub_sc.call_approve_service(&rand_service).assert_ok();
+
+    let user = b_mock_rc.borrow_mut().create_user_account(&rust_zero);
+    b_mock_rc
+        .borrow_mut()
+        .set_esdt_balance(&user, FIRST_TOKEN_ID, &rust_biguint!(1_000_000));
+
+    sub_sc
+        .call_deposit(&user, FIRST_TOKEN_ID, 1_000_000)
+        .assert_ok();
+
+    // User subscribes to the second service index
+    sub_sc.call_subscribe(&user, vec![(1, 1)]).assert_ok();
+
+    b_mock_rc.borrow_mut().set_block_epoch(10);
+
+    sub_sc
+        .call_subtract_payment(&rand_service, 0, 1)
+        .assert_error(4, "User is not subscribed to the service");
+
+    // The service was not able to substract the payment for the wrong service index
+    b_mock_rc
+        .borrow()
+        .check_esdt_balance(&rand_service, FIRST_TOKEN_ID, &rust_biguint!(0));
+
+    // The user pays the fee for the correct service index
+    sub_sc
+        .call_subtract_payment(&rand_service, 1, 1)
+        .assert_ok();
+    // The service has sucessfully deducted the amount for the correct service index
+    b_mock_rc
+        .borrow()
+        .check_esdt_balance(&rand_service, FIRST_TOKEN_ID, &rust_biguint!(500));
+}

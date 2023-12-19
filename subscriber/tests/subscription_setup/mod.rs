@@ -5,17 +5,13 @@ use std::{cell::RefCell, rc::Rc};
 use auto_farm::common::address_to_id_mapper::AddressId;
 use multiversx_sc::types::{Address, MultiValueEncoded};
 use multiversx_sc_scenario::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint,
+    managed_address, managed_token_id, rust_biguint,
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper, TxResult},
     DebugApi,
 };
 use subscription_fee::{fees::FeesModule, service::ServiceModule, SubscriptionFee};
 
 use crate::{USDC_TOKEN_ID, WEGLD_TOKEN_ID};
-pub const MAX_USER_DEPOSITS: usize = 5;
-pub const MIN_USER_DEPOSIT_VALUE: u64 = 1_000_000;
-pub const MAX_PENDING_SERVICES: usize = 5;
-pub const MAX_SERVICE_INFO_NO: usize = 5;
 
 pub struct SubscriptionSetup<SubscriptionObjBuilder>
 where
@@ -58,10 +54,6 @@ where
                 sc.init(
                     managed_token_id!(USDC_TOKEN_ID),
                     managed_token_id!(WEGLD_TOKEN_ID),
-                    MAX_USER_DEPOSITS,
-                    managed_biguint!(MIN_USER_DEPOSIT_VALUE),
-                    MAX_PENDING_SERVICES,
-                    MAX_SERVICE_INFO_NO,
                     managed_address!(pair_address),
                     args,
                 )

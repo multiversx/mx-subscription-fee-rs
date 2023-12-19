@@ -24,10 +24,6 @@ pub trait SubscriptionFee:
         &self,
         stable_token_id: TokenIdentifier,
         wegld_token_id: TokenIdentifier,
-        max_user_deposits: usize,
-        min_user_deposit_value: BigUint,
-        max_pending_services: usize,
-        max_service_info_no: usize,
         price_query_address: ManagedAddress,
         accepted_tokens: MultiValueEncoded<TokenIdentifier>,
     ) {
@@ -40,22 +36,6 @@ pub trait SubscriptionFee:
             "WEGLD token not valid"
         );
         require!(
-            max_user_deposits > 0,
-            "Max user deposits no must be greater than 0"
-        );
-        require!(
-            min_user_deposit_value > 0,
-            "Min user deposit value must be greater than 0"
-        );
-        require!(
-            max_pending_services > 0,
-            "Max pending services no must be greater than 0"
-        );
-        require!(
-            max_service_info_no > 0,
-            "Max service info no must be greater than 0"
-        );
-        require!(
             self.blockchain().is_smart_contract(&price_query_address),
             "Invalid price query address"
         );
@@ -64,11 +44,5 @@ pub trait SubscriptionFee:
         self.wegld_token_id().set_if_empty(wegld_token_id);
         self.price_query_address().set_if_empty(price_query_address);
         self.add_accepted_fees_tokens(accepted_tokens);
-        self.max_user_deposits().set_if_empty(max_user_deposits);
-        self.min_user_deposit_value()
-            .set_if_empty(min_user_deposit_value);
-        self.max_pending_services()
-            .set_if_empty(max_pending_services);
-        self.max_service_info_no().set_if_empty(max_service_info_no);
     }
 }

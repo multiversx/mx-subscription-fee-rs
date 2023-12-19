@@ -4,6 +4,7 @@ use auto_farm::common::unique_payments::UniquePayments;
 
 use crate::common_storage;
 use crate::pair_actions;
+use crate::service::MAX_USER_DEPOSITS;
 
 #[multiversx_sc::module]
 pub trait FeesModule:
@@ -20,10 +21,14 @@ pub trait FeesModule:
     }
 
     #[only_owner]
-    #[endpoint(setMaxUserDeposits)]
-    fn set_max_user_deposits(&self, max_user_deposits: usize) {
-        require!(max_user_deposits > 0, "Value must be greater than o");
-        self.max_user_deposits().set(max_user_deposits);
+    #[endpoint(setMinDepositValue)]
+    fn set_min_deposit_value(&self, token_id: TokenIdentifier, min_token_deposit_value: BigUint) {
+        if min_token_deposit_value == BigUint::zero() {
+            self.min_token_deposit_value(&token_id).clear();
+        } else {
+            self.min_token_deposit_value(&token_id)
+                .set(min_token_deposit_value);
+        }
     }
 
     #[payable("*")]
@@ -43,9 +48,11 @@ pub trait FeesModule:
         require!(payment_value_result.is_ok(), "Could not get payment value");
 
         let payment_value = unsafe { payment_value_result.unwrap_unchecked() };
-        let min_user_deposit_value = self.min_user_deposit_value().get();
+        let min_token_deposit_value = self
+            .min_token_deposit_value(&payment.token_identifier)
+            .get();
         require!(
-            payment_value > min_user_deposit_value,
+            payment_value >= min_token_deposit_value,
             "Payment value is lesser than the minimum accepted"
         );
 
@@ -113,9 +120,8 @@ pub trait FeesModule:
             dest_mapper.update(|fees| {
                 fees.add_payment(payment);
 
-                let max_user_deposits = self.max_user_deposits().get();
                 require!(
-                    fees.clone().into_payments().len() < max_user_deposits,
+                    fees.clone().into_payments().len() <= MAX_USER_DEPOSITS,
                     "Maximum number of deposits per user reached"
                 );
             });

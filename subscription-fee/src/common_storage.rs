@@ -23,16 +23,12 @@ pub trait CommonStorageModule {
         user_id: AddressId,
     ) -> SingleValueMapper<UniquePayments<Self::Api>>;
 
-    #[view(getMaxUserDeposits)]
-    #[storage_mapper("maxUserDeposits")]
-    fn max_user_deposits(&self) -> SingleValueMapper<usize>;
+    #[view(getMinTokenDepositValue)]
+    #[storage_mapper("minTokenDepositValue")]
+    fn min_token_deposit_value(&self, token_id: &TokenIdentifier) -> SingleValueMapper<BigUint>;
 
-    #[view(getMinUserDepositValue)]
-    #[storage_mapper("minUserDepositValue")]
-    fn min_user_deposit_value(&self) -> SingleValueMapper<BigUint>;
-
-    #[storage_mapper("userLastActionEpoch")]
-    fn user_last_action_epoch(
+    #[storage_mapper("userNextPaymentEpoch")]
+    fn user_next_payment_epoch(
         &self,
         user_id: AddressId,
         service_id: AddressId,
@@ -45,10 +41,6 @@ pub trait CommonStorageModule {
     #[view(getPendingServices)]
     #[storage_mapper("pendingServices")]
     fn pending_services(&self) -> UnorderedSetMapper<ManagedAddress>;
-
-    #[view(getMaxPendingServices)]
-    #[storage_mapper("maxPendingServices")]
-    fn max_pending_services(&self) -> SingleValueMapper<usize>;
 
     #[storage_mapper("pendingServiceInfo")]
     fn pending_service_info(
@@ -63,9 +55,6 @@ pub trait CommonStorageModule {
         &self,
         service_id: AddressId,
     ) -> SingleValueMapper<ManagedVec<ServiceInfo<Self::Api>>>;
-
-    #[storage_mapper("maxServiceInfoNo")]
-    fn max_service_info_no(&self) -> SingleValueMapper<usize>;
 
     #[view(getSubscribedUsers)]
     #[storage_mapper("subscribedUsers")]
