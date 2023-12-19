@@ -14,7 +14,7 @@ use subscription_fee::{
     SubscriptionFee,
 };
 
-use crate::{FIRST_TOKEN_ID, USDC_TOKEN_ID, WEGLD_TOKEN_ID};
+use crate::{USDC_TOKEN_ID, WEGLD_TOKEN_ID};
 
 pub const MIN_USER_DEPOSIT_VALUE: u64 = 1_000_000;
 
@@ -63,10 +63,7 @@ where
                     args,
                 );
 
-                sc.set_min_deposit_value(
-                    managed_token_id!(FIRST_TOKEN_ID),
-                    managed_biguint!(MIN_USER_DEPOSIT_VALUE),
-                );
+                sc.set_min_deposit_value(managed_biguint!(MIN_USER_DEPOSIT_VALUE));
             })
             .assert_ok();
 

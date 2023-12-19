@@ -28,7 +28,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         withdrawFunds => withdraw_funds
         getAcceptedFeesTokens => accepted_fees_tokens
         getUserDepositedFees => user_deposited_fees
-        getMinTokenDepositValue => min_token_deposit_value
+        getMinStableTokenDepositValue => min_stable_token_deposit_value
         getPendingServices => pending_services
         getServiceInfo => service_info
         getSubscribedUsers => subscribed_users
