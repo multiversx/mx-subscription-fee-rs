@@ -8,6 +8,7 @@ use subscriber_config::MexActionsPercentages;
 use subscription_fee::subtract_payments::Epoch;
 
 pub mod claim_farm_boosted;
+pub mod events;
 pub mod service;
 pub mod subscriber_config;
 
@@ -18,6 +19,7 @@ pub trait SubscriberContractMain:
     + service::ServiceModule
     + common_subscriber::CommonSubscriberModule
     + energy_query::EnergyQueryModule
+    + events::EventsModule
 {
     /// Percentages must add up to 10,000 each, where 10,000 = 100%
     /// Lock period is number of epochs the tokens should be locked for

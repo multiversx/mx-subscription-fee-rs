@@ -1,7 +1,10 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use crate::subscriber_config::{self, MexActionsPercentages, SubscriptionUserType};
+use crate::{
+    events,
+    subscriber_config::{self, MexActionsPercentages, SubscriptionUserType},
+};
 
 #[derive(ManagedVecItem, TypeAbi, TopEncode, TopDecode, PartialEq)]
 pub struct MexOperationItem<M: ManagedTypeApi> {
@@ -23,6 +26,7 @@ pub trait ServiceModule:
     subscriber_config::SubscriberConfigModule
     + common_subscriber::CommonSubscriberModule
     + energy_query::EnergyQueryModule
+    + events::EventsModule
 {
     #[only_owner]
     #[endpoint(subtractPayment)]
@@ -37,6 +41,7 @@ pub trait ServiceModule:
 
         let fees_contract_address = self.fees_contract_address().get();
 
+        let mut processed_user_ids = ManagedVec::new();
         for user_id in user_ids {
             if is_premium_service {
                 let opt_user_address = self
@@ -54,7 +59,10 @@ pub trait ServiceModule:
             }
 
             self.subtract_user_payment(fees_contract_address.clone(), service_index, user_id);
+            processed_user_ids.push(user_id);
         }
+
+        self.emit_subtract_payment_event(service_index, processed_user_ids);
     }
 
     #[only_owner]
@@ -87,6 +95,7 @@ pub trait ServiceModule:
 
         let mut total_fees = BigUint::zero();
         let mut mex_operations_list: ManagedVec<MexOperationItem<Self::Api>> = ManagedVec::new();
+        let mut processed_user_ids = ManagedVec::new();
         for user_id in user_ids {
             let opt_user_address = self
                 .user_id()
@@ -108,6 +117,7 @@ pub trait ServiceModule:
             total_fees += &fee.fees.amount;
             let mex_operation = MexOperationItem::new(user_address, fee.fees.amount);
             mex_operations_list.push(mex_operation);
+            processed_user_ids.push(user_id);
         }
 
         let total_tokens_to_lock =
@@ -134,6 +144,8 @@ pub trait ServiceModule:
                 mex_operation.user_address,
             );
         }
+
+        self.emit_mex_operation_event(service_index, processed_user_ids);
     }
 
     fn perform_mex_operation(

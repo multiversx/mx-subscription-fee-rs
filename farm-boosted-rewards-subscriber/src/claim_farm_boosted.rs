@@ -1,6 +1,8 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
+use crate::events;
+use crate::events::ClaimRewardsOperation;
 use crate::service;
 use crate::subscriber_config;
 
@@ -10,6 +12,7 @@ pub trait ClaimFarmBoostedRewardsModule:
     + service::ServiceModule
     + common_subscriber::CommonSubscriberModule
     + energy_query::EnergyQueryModule
+    + events::EventsModule
 {
     #[only_owner]
     #[endpoint(addFarm)]
@@ -38,6 +41,7 @@ pub trait ClaimFarmBoostedRewardsModule:
 
         let fees_contract_address = self.fees_contract_address().get();
 
+        let mut claim_reward_operations = ManagedVec::new();
         for user_farms_pair in user_farms_pairs_to_claim {
             let (user_id, farms_ids) = user_farms_pair.into_tuple();
 
@@ -49,6 +53,7 @@ pub trait ClaimFarmBoostedRewardsModule:
             }
             let user = opt_user.unwrap();
 
+            let mut processed_farms = ManagedVec::new();
             for farm_id in &farms_ids {
                 let farm_address_opt = self.farm_id().get_address(farm_id);
                 if farm_address_opt.is_some() {
@@ -59,8 +64,15 @@ pub trait ClaimFarmBoostedRewardsModule:
                         continue;
                     }
                     self.claim_boosted_rewards(farm_address, user.clone());
+                    processed_farms.push(farm_id);
                 }
             }
+
+            if processed_farms.len() > 0 {
+                claim_reward_operations.push(ClaimRewardsOperation::new(user, processed_farms));
+            }
         }
+
+        self.emit_claim_rewards_event(claim_reward_operations);
     }
 }
