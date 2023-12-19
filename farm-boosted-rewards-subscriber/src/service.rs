@@ -3,6 +3,21 @@ multiversx_sc::derive_imports!();
 
 use crate::subscriber_config::{self, MexActionsPercentages, SubscriptionUserType};
 
+#[derive(ManagedVecItem, TypeAbi, TopEncode, TopDecode, PartialEq)]
+pub struct MexOperationItem<M: ManagedTypeApi> {
+    pub user_address: ManagedAddress<M>,
+    pub amount: BigUint<M>,
+}
+
+impl<M: ManagedTypeApi> MexOperationItem<M> {
+    pub fn new(user_address: ManagedAddress<M>, amount: BigUint<M>) -> Self {
+        MexOperationItem {
+            user_address,
+            amount,
+        }
+    }
+}
+
 #[multiversx_sc::module]
 pub trait ServiceModule:
     subscriber_config::SubscriberConfigModule
@@ -17,13 +32,13 @@ pub trait ServiceModule:
         user_ids: MultiValueEncoded<AddressId>,
     ) {
         require!(service_index <= 1, "Invalid service index");
-        let premium_service = service_index == 1;
+        let is_premium_service = service_index == 1;
         let energy_threshold = self.energy_threshold().get();
 
         let fees_contract_address = self.fees_contract_address().get();
 
         for user_id in user_ids {
-            if premium_service {
+            if is_premium_service {
                 let opt_user_address = self
                     .user_id()
                     .get_address_at_address(&fees_contract_address, user_id);
@@ -68,7 +83,10 @@ pub trait ServiceModule:
         };
 
         let fees_contract_address = self.fees_contract_address().get();
+        let wegld_token_id = self.wegld_token_id().get();
 
+        let mut total_fees = BigUint::zero();
+        let mut mex_operations_list: ManagedVec<MexOperationItem<Self::Api>> = ManagedVec::new();
         for user_id in user_ids {
             let opt_user_address = self
                 .user_id()
@@ -84,26 +102,48 @@ pub trait ServiceModule:
 
             let fee = fee_mapper.take();
             let token_id = fee.fees.token_identifier;
-
+            require!(token_id == wegld_token_id, "Invalid fee token id");
             let user_address = unsafe { opt_user_address.unwrap_unchecked() };
-            self.perform_mex_operations(
-                user_address,
-                token_id,
-                fee.fees.amount,
-                &actions_percentage,
+
+            total_fees += &fee.fees.amount;
+            let mex_operation = MexOperationItem::new(user_address, fee.fees.amount);
+            mex_operations_list.push(mex_operation);
+        }
+
+        let total_tokens_to_lock =
+            self.perform_mex_operation(wegld_token_id, total_fees.clone(), &actions_percentage);
+
+        if total_tokens_to_lock.amount == 0 {
+            return;
+        }
+
+        let simple_lock_address = self.simple_lock_address().get();
+        let lock_period = self.lock_period().get();
+
+        // Call lock for each user to properly update their energy
+        for mex_operation in mex_operations_list.into_iter() {
+            let user_amount = &total_tokens_to_lock.amount * &mex_operation.amount / &total_fees;
+            self.call_lock_tokens(
+                simple_lock_address.clone(),
+                EsdtTokenPayment::new(
+                    total_tokens_to_lock.token_identifier.clone(),
+                    0,
+                    user_amount,
+                ),
+                lock_period,
+                mex_operation.user_address,
             );
         }
     }
 
-    fn perform_mex_operations(
+    fn perform_mex_operation(
         &self,
-        user_address: ManagedAddress,
         token_id: TokenIdentifier,
         total_tokens: BigUint,
         actions_percentages: &MexActionsPercentages,
-    ) {
+    ) -> EsdtTokenPayment {
         let actions_value = actions_percentages.get_amounts_per_category(&total_tokens);
-        let total_mex_to_buy = actions_value.get_total_mex_to_buy();
+        let total_sell_amount = actions_value.get_sell_amount();
 
         if actions_value.fees > 0 {
             self.total_fees().update(|fees| {
@@ -115,7 +155,7 @@ pub trait ServiceModule:
             });
         }
 
-        let bought_mex = self.buy_mex(token_id, total_mex_to_buy);
+        let bought_mex = self.buy_mex(token_id, total_sell_amount);
         let mex_to_lock = &bought_mex.amount * actions_percentages.lock
             / (actions_percentages.lock + actions_percentages.burn);
         let mex_to_burn = &bought_mex.amount - &mex_to_lock;
@@ -125,18 +165,7 @@ pub trait ServiceModule:
                 .esdt_local_burn(&bought_mex.token_identifier, 0, &mex_to_burn);
         }
 
-        if mex_to_lock == 0 {
-            return;
-        }
-
-        let simple_lock_address = self.simple_lock_address().get();
-        let lock_period = self.lock_period().get();
-        let _ = self.call_lock_tokens(
-            simple_lock_address,
-            EsdtTokenPayment::new(bought_mex.token_identifier, 0, mex_to_lock),
-            lock_period,
-            user_address,
-        );
+        EsdtTokenPayment::new(bought_mex.token_identifier, 0, mex_to_lock)
     }
 
     fn buy_mex(&self, token_id: TokenIdentifier, amount: BigUint) -> EsdtTokenPayment {

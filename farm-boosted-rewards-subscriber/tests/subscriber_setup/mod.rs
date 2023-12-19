@@ -8,7 +8,8 @@ use farm_boosted_rewards_subscriber::{
 };
 use multiversx_sc::{
     codec::multi_types::MultiValue2,
-    types::{Address, ManagedVec, MultiValueEncoded}, storage::mappers::AddressId,
+    storage::mappers::AddressId,
+    types::{Address, ManagedVec, MultiValueEncoded},
 };
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
@@ -45,6 +46,7 @@ where
         energy_factory_address: &Address,
         owner_addr: &Address,
         reward_token_id: &[u8],
+        wegld_token_id: &[u8],
     ) -> Self {
         let rust_zero = rust_biguint!(0);
         let sub_wrapper = b_mock.borrow_mut().create_sc_account(
@@ -72,6 +74,7 @@ where
                     managed_address!(fee_contract_address),
                     managed_biguint!(ENERGT_THRESHOLD),
                     managed_token_id!(reward_token_id),
+                    managed_token_id!(wegld_token_id),
                     standard_mex_actions_percentages,
                     premium_mex_actions_percentages,
                     managed_address!(energy_factory_address),

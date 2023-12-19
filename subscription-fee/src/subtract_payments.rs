@@ -53,18 +53,17 @@ pub trait SubtractPaymentsModule:
         let service_id = self.service_id().get_id_non_zero(&caller);
         let current_epoch = self.blockchain().get_block_epoch();
 
-        let next_payment_mapper = self.user_next_payment_epoch(user_id, service_id, service_index);
-        let next_payment_epoch = next_payment_mapper.get();
-
-        require!(next_payment_epoch <= current_epoch, "Cannot subtract yet");
         require!(
             self.subscribed_users(service_id, service_index)
                 .contains(&user_id),
             "User is not subscribed to the service"
         );
 
-        let service_info = self.service_info(service_id).get().get(service_index);
+        let next_payment_mapper = self.user_next_payment_epoch(user_id, service_id, service_index);
+        let next_payment_epoch = next_payment_mapper.get();
+        require!(next_payment_epoch <= current_epoch, "Cannot subtract yet");
 
+        let service_info = self.service_info(service_id).get().get(service_index);
         let subscription_epochs = service_info.subscription_epochs;
 
         if subscription_epochs == 0 {

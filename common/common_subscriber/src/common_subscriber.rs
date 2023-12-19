@@ -25,7 +25,7 @@ pub trait CommonSubscriberModule {
         self.fees_contract_address().set(fees_contract_address);
     }
 
-    /// Arguments are pairs of sc_address, opt_payment_token and payment_amount
+    /// Arguments are MultiValue3 of opt_payment_token, payment_amount and subscription_epochs
     #[only_owner]
     #[endpoint(registerService)]
     fn register_service(

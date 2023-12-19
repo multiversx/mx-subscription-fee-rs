@@ -101,6 +101,7 @@ fn init_all<
         farm_setup.energy_factory_wrapper.address_ref(),
         &owner,
         REWARD_TOKEN_ID,
+        WEGLD_TOKEN_ID,
     );
 
     (b_mock_rc, pair_setup, farm_setup, sub_sc, subscriber)

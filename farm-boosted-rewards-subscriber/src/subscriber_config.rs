@@ -52,14 +52,13 @@ impl MexActionsPercentages {
 }
 
 impl<M: ManagedTypeApi> MexActionsValue<M> {
-    pub fn get_total_mex_to_buy(&self) -> BigUint<M> {
+    pub fn get_sell_amount(&self) -> BigUint<M> {
         &self.lock + &self.burn
     }
 }
 
 #[multiversx_sc::module]
-pub trait SubscriberConfigModule
-{
+pub trait SubscriberConfigModule {
     fn call_swap_to_mex(
         &self,
         pair_address: ManagedAddress,
@@ -120,6 +119,9 @@ pub trait SubscriberConfigModule
 
     #[storage_mapper("mexTokenId")]
     fn mex_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
+
+    #[storage_mapper("wegldTokenId")]
+    fn wegld_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 
     #[storage_mapper("mexPair")]
     fn mex_pair(&self) -> SingleValueMapper<ManagedAddress>;

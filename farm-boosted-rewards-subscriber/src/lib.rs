@@ -27,6 +27,7 @@ pub trait SubscriberContractMain:
         fees_contract_address: ManagedAddress,
         energy_threshold: BigUint,
         mex_token_id: TokenIdentifier,
+        wegld_token_id: TokenIdentifier,
         normal_user_percentages: MexActionsPercentages,
         premium_user_percentages: MexActionsPercentages,
         simple_lock_address: ManagedAddress,
@@ -34,6 +35,10 @@ pub trait SubscriberContractMain:
         lock_period: Epoch,
     ) {
         require!(mex_token_id.is_valid_esdt_identifier(), "Invalid token ID");
+        require!(
+            wegld_token_id.is_valid_esdt_identifier(),
+            "Invalid token ID"
+        );
         require!(
             normal_user_percentages.is_valid() && premium_user_percentages.is_valid(),
             "Invalid percentages"
@@ -50,6 +55,7 @@ pub trait SubscriberContractMain:
         self.base_init(fees_contract_address);
         self.energy_threshold().set(energy_threshold);
         self.mex_token_id().set(mex_token_id);
+        self.wegld_token_id().set(wegld_token_id);
         self.normal_user_percentage().set(normal_user_percentages);
         self.premium_user_percentage().set(premium_user_percentages);
         self.simple_lock_address().set(simple_lock_address);
