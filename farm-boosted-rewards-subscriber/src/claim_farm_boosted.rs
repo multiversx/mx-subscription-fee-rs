@@ -68,7 +68,7 @@ pub trait ClaimFarmBoostedRewardsModule:
                 }
             }
 
-            if processed_farms.len() > 0 {
+            if !processed_farms.is_empty() {
                 claim_reward_operations.push(ClaimRewardsOperation::new(user, processed_farms));
             }
         }
