@@ -3,7 +3,7 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use auto_farm::common::unique_payments::UniquePayments;
+use common_structs::UniquePayments;
 use subscriber_config::MexActionsPercentages;
 use subscription_fee::subtract_payments::Epoch;
 

@@ -1,0 +1,16 @@
+[package]
+name = "common_structs"
+version = "0.0.0"
+authors = ["MultiversX <contact@multiversx.com>"]
+edition = "2021"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.multiversx-sc]
+version = "=0.45.2"
+features = ["esdt-token-payment-legacy-decode"]
+
+[dependencies.mergeable]
+git = "https://github.com/multiversx/mx-exchange-sc"
+rev = "4be981b"
