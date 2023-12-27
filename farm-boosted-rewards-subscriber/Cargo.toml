@@ -9,14 +9,10 @@ publish = false
 path = "src/lib.rs"
 
 [dependencies.multiversx-sc]
-version = "=0.45.1"
+version = "=0.45.2"
 
 [dependencies.multiversx-sc-modules]
-version = "=0.45.1"
-
-[dependencies.auto-farm]
-git = "https://github.com/multiversx/mx-exchange-tools-sc"
-rev = "1416a8b"
+version = "=0.45.2"
 
 [dependencies.subscription-fee]
 path = "../subscription-fee"
@@ -24,25 +20,28 @@ path = "../subscription-fee"
 [dependencies.common_subscriber]
 path = "../common/common_subscriber"
 
+[dependencies.common_structs]
+path = "../common/common_structs"
+
 [dependencies.energy-query]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "56a8e77"
+rev = "4be981b"
 
 [dependencies.energy-factory]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "56a8e77"
+rev = "4be981b"
 
 [dependencies.pair]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "56a8e77"
+rev = "4be981b"
 
 [dependencies.farm-with-locked-rewards]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "56a8e77"
+rev = "4be981b"
 
 [dependencies.config]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "56a8e77"
+rev = "4be981b"
 
 [dev-dependencies]
 num-bigint = "0.4.2"
@@ -52,27 +51,27 @@ hex-literal = "0.3.4"
 
 [dev-dependencies.farm-boosted-yields]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "56a8e77"
+rev = "4be981b"
 
 [dev-dependencies.pausable]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "56a8e77"
+rev = "4be981b"
 
 [dev-dependencies.farm_token]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "56a8e77"
+rev = "4be981b"
 
 [dev-dependencies.sc_whitelist_module]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "56a8e77"
+rev = "4be981b"
 
 [dev-dependencies.simple-lock]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "56a8e77"
+rev = "4be981b"
 
 [dev-dependencies.locking_module]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "56a8e77"
+rev = "4be981b"
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.45.1"
+version = "=0.45.2"

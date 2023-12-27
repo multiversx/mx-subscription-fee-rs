@@ -9,15 +9,11 @@ publish = false
 path = "src/lib.rs"
 
 [dependencies.multiversx-sc]
-version = "=0.45.1"
+version = "=0.45.2"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.multiversx-sc-modules]
-version = "=0.45.1"
-
-[dependencies.auto-farm]
-git = "https://github.com/multiversx/mx-exchange-tools-sc"
-rev = "1416a8b"
+version = "=0.45.2"
 
 [dev-dependencies]
 num-bigint = "0.4.2"
@@ -25,13 +21,16 @@ num-traits = "0.2"
 hex = "0.4"
 hex-literal = "0.3.4"
 
+[dependencies.common_structs]
+path = "../common/common_structs"
+
 [dev-dependencies.pair]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "56a8e77"
+rev = "4be981b"
 
 [dev-dependencies.pausable]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "56a8e77"
+rev = "4be981b"
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.45.1"
+version = "=0.45.2"

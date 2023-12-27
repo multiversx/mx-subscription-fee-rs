@@ -11,4 +11,4 @@ path = "src/common_subscriber.rs"
 path = "../../subscription-fee"
 
 [dependencies.multiversx-sc]
-version = "=0.45.1"
+version = "=0.45.2"

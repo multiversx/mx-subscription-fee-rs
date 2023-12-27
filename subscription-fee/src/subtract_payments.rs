@@ -3,7 +3,7 @@ multiversx_sc::derive_imports!();
 
 use core::hint::unreachable_unchecked;
 
-use auto_farm::common::unique_payments::UniquePayments;
+use common_structs::UniquePayments;
 
 pub type Epoch = u64;
 

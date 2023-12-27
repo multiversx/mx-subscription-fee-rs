@@ -1,7 +1,7 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use auto_farm::common::unique_payments::UniquePayments;
+use common_structs::UniquePayments;
 use config::ProxyTrait as _;
 use subscription_fee::subtract_payments::Epoch;
 

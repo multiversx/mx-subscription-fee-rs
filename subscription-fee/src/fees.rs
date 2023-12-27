@@ -1,6 +1,6 @@
 multiversx_sc::imports!();
 
-use auto_farm::common::unique_payments::UniquePayments;
+use common_structs::UniquePayments;
 
 use crate::common_storage;
 use crate::pair_actions;
