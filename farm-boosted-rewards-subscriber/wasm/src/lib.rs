@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           19
+// Endpoints:                           21
 // Async Callback (empty):               1
-// Total number of exported functions:  21
+// Total number of exported functions:  23
 
 #![no_std]
 
@@ -23,6 +23,8 @@ multiversx_sc_wasm_adapter::endpoints! {
     (
         init => init
         upgrade => upgrade
+        setLockPeriod => set_lock_period
+        setEnergyThreshold => set_energy_threshold
         getSimpleLockAddress => simple_lock_address
         getLockPeriod => lock_period
         getNormalUserPercentage => normal_user_percentage

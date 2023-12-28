@@ -26,11 +26,11 @@ path = "../common/common_structs"
 
 [dev-dependencies.pair]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "4be981b"
+rev = "1fb9a1d"
 
 [dev-dependencies.pausable]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "4be981b"
+rev = "1fb9a1d"
 
 [dev-dependencies.multiversx-sc-scenario]
 version = "=0.45.2"

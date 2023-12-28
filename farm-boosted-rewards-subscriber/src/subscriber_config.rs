@@ -65,9 +65,10 @@ pub trait SubscriberConfigModule {
         mex_token_id: TokenIdentifier,
         input_token_id: TokenIdentifier,
         amount: BigUint,
+        min_amount_out: BigUint,
     ) -> EsdtTokenPayment {
         self.other_pair_proxy(pair_address)
-            .swap_tokens_fixed_input(mex_token_id, BigUint::from(1u32))
+            .swap_tokens_fixed_input(mex_token_id, min_amount_out)
             .with_esdt_transfer(EsdtTokenPayment::new(input_token_id, 0, amount))
             .execute_on_dest_context()
     }
@@ -120,9 +121,6 @@ pub trait SubscriberConfigModule {
     #[storage_mapper("mexTokenId")]
     fn mex_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 
-    #[storage_mapper("wegldTokenId")]
-    fn wegld_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
-
     #[storage_mapper("mexPair")]
     fn mex_pair(&self) -> SingleValueMapper<ManagedAddress>;
 
@@ -156,4 +154,10 @@ pub trait SubscriberConfigModule {
     // used for external storage read
     #[storage_mapper("userId")]
     fn user_id(&self) -> AddressToIdMapper<Self::Api>;
+
+    #[storage_mapper("first_token_id")]
+    fn first_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
+
+    #[storage_mapper("second_token_id")]
+    fn second_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 }

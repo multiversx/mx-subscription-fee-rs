@@ -149,10 +149,6 @@ pub trait ServiceModule:
     #[endpoint]
     fn subscribe(&self, services: MultiValueEncoded<MultiValue2<AddressId, usize>>) {
         let caller = self.blockchain().get_caller();
-        require!(
-            !self.blockchain().is_smart_contract(&caller),
-            "Only user accounts can subscribe to services"
-        );
         let caller_id = self.user_id().get_id_non_zero(&caller);
 
         for service in services {

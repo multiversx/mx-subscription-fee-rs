@@ -44,7 +44,7 @@ where
         b_mock: Rc<RefCell<BlockchainStateWrapper>>,
         builder: SubscriberObjBuilder,
         fee_contract_address: &Address,
-        pair_address: &Address,
+        mex_pair_address: &Address,
         energy_factory_address: &Address,
         owner_addr: &Address,
         reward_token_id: &[u8],
@@ -80,7 +80,7 @@ where
                     standard_mex_actions_percentages,
                     premium_mex_actions_percentages,
                     managed_address!(energy_factory_address),
-                    managed_address!(pair_address),
+                    managed_address!(mex_pair_address),
                     LOCKING_PERIOD,
                 );
 

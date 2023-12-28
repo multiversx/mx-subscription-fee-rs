@@ -53,11 +53,12 @@ pub trait SubtractPaymentsModule:
         let service_id = self.service_id().get_id_non_zero(&caller);
         let current_epoch = self.blockchain().get_block_epoch();
 
-        require!(
-            self.subscribed_users(service_id, service_index)
-                .contains(&user_id),
-            "User is not subscribed to the service"
-        );
+        if !self
+            .subscribed_users(service_id, service_index)
+            .contains(&user_id)
+        {
+            return ScResult::Err(());
+        }
 
         let next_payment_mapper = self.user_next_payment_epoch(user_id, service_id, service_index);
         let next_payment_epoch = next_payment_mapper.get();

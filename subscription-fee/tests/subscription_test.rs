@@ -447,9 +447,10 @@ fn try_substract_from_unsubscribed_user_test() {
 
     b_mock_rc.borrow_mut().set_block_epoch(10);
 
+    // The endpoint returns a ScResult::Err(()), but does not stop the execution
     sub_sc
-        .call_subtract_payment(&rand_service, 0, 1)
-        .assert_error(4, "User is not subscribed to the service");
+        .call_subtract_payment_with_sc_error(&rand_service, 0, 1)
+        .assert_ok();
 
     // The service was not able to substract the payment for the wrong service index
     b_mock_rc

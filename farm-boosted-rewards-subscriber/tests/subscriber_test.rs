@@ -18,10 +18,10 @@ mod pair_setup;
 mod subscriber_setup;
 mod subscription_setup;
 
-static FIRST_TOKEN_ID: &[u8] = b"MYTOKEN-123456";
 static USDC_TOKEN_ID: &[u8] = b"USDC-123456";
 static WEGLD_TOKEN_ID: &[u8] = b"WEGLD-123456";
 static LP_TOKEN_ID: &[u8] = b"LPTOK-123456";
+static STABLE_LP_TOKEN_ID: &[u8] = b"SLPTOK-123456";
 static REWARD_TOKEN_ID: &[u8] = b"MEX-123456";
 static LOCKED_TOKEN_ID: &[u8] = b"XMEX-123456";
 const DEFAULT_BOOSTED_YIELDS_PERCENTAGE: u64 = 2_500; // 25%
@@ -43,6 +43,7 @@ fn init_all<
 ) -> (
     Rc<RefCell<BlockchainStateWrapper>>,
     PairSetup<PairBuilder>,
+    PairSetup<PairBuilder>,
     FarmSetup<FarmBuilder, EnergyFactoryBuilder>,
     SubscriptionSetup<SubscriptionObjBuilder>,
     SubscriberSetup<SubscriberBuilder>,
@@ -52,13 +53,23 @@ fn init_all<
 
     let b_mock_ref = RefCell::new(b_mock);
     let b_mock_rc = Rc::new(b_mock_ref);
-    let pair_setup = PairSetup::new(
+    let mex_pair_setup = PairSetup::new(
         b_mock_rc.clone(),
         pair_builder,
         &owner,
-        FIRST_TOKEN_ID,
-        USDC_TOKEN_ID,
+        WEGLD_TOKEN_ID,
+        REWARD_TOKEN_ID,
         LP_TOKEN_ID,
+        1_000_000_000,
+        2_000_000_000,
+    );
+    let stable_pair_setup = PairSetup::new(
+        b_mock_rc.clone(),
+        pair_builder,
+        &owner,
+        WEGLD_TOKEN_ID,
+        USDC_TOKEN_ID,
+        STABLE_LP_TOKEN_ID,
         1_000_000_000,
         2_000_000_000,
     );
@@ -70,7 +81,7 @@ fn init_all<
         LOCKED_TOKEN_ID,
         LP_TOKEN_ID,
         DEFAULT_BOOSTED_YIELDS_PERCENTAGE,
-        pair_setup.pair_wrapper.address_ref(),
+        mex_pair_setup.pair_wrapper.address_ref(),
         farm_builder,
         energy_factory_builder,
     );
@@ -79,16 +90,16 @@ fn init_all<
         b_mock_rc.clone(),
         sub_builder,
         &owner,
-        pair_setup.pair_wrapper.address_ref(),
-        vec![FIRST_TOKEN_ID.to_vec()],
+        stable_pair_setup.pair_wrapper.address_ref(),
+        vec![WEGLD_TOKEN_ID.to_vec()],
     );
 
     b_mock_rc
         .borrow_mut()
         .execute_tx(&owner, &sub_sc.s_wrapper, &rust_biguint!(0), |sc| {
             sc.add_pair_address(
-                managed_token_id!(FIRST_TOKEN_ID),
-                managed_address!(pair_setup.pair_wrapper.address_ref()),
+                managed_token_id!(WEGLD_TOKEN_ID),
+                managed_address!(stable_pair_setup.pair_wrapper.address_ref()),
             );
         })
         .assert_ok();
@@ -97,14 +108,21 @@ fn init_all<
         b_mock_rc.clone(),
         subscriber_builder,
         sub_sc.s_wrapper.address_ref(),
-        pair_setup.pair_wrapper.address_ref(),
+        mex_pair_setup.pair_wrapper.address_ref(),
         farm_setup.energy_factory_wrapper.address_ref(),
         &owner,
         REWARD_TOKEN_ID,
         WEGLD_TOKEN_ID,
     );
 
-    (b_mock_rc, pair_setup, farm_setup, sub_sc, subscriber)
+    (
+        b_mock_rc,
+        mex_pair_setup,
+        stable_pair_setup,
+        farm_setup,
+        sub_sc,
+        subscriber,
+    )
 }
 
 #[test]
@@ -120,14 +138,20 @@ fn init_test() {
 
 #[test]
 fn claim_boosted_rewards_for_user_test() {
-    let (b_mock_rc, _pair_setup, mut farm_setup, mut subscription_setup, mut subscriber_setup) =
-        init_all(
-            pair::contract_obj,
-            farm_with_locked_rewards::contract_obj,
-            energy_factory::contract_obj,
-            subscription_fee::contract_obj,
-            farm_boosted_rewards_subscriber::contract_obj,
-        );
+    let (
+        b_mock_rc,
+        _mex_pair_setup,
+        _stable_pair_setup,
+        mut farm_setup,
+        mut subscription_setup,
+        mut subscriber_setup,
+    ) = init_all(
+        pair::contract_obj,
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+        subscription_fee::contract_obj,
+        farm_boosted_rewards_subscriber::contract_obj,
+    );
 
     let farm_id = subscriber_setup.call_add_farm(farm_setup.farm_wrapper.address_ref());
     let farm_list = vec![farm_id];
@@ -141,12 +165,12 @@ fn claim_boosted_rewards_for_user_test() {
     subscriber_setup
         .call_register_service(vec![
             (
-                Some(FIRST_TOKEN_ID.to_vec()),
+                Some(WEGLD_TOKEN_ID.to_vec()),
                 1_000,
                 WEEKLY_SUBSCRIPTION_EPOCHS,
             ),
             (
-                Some(FIRST_TOKEN_ID.to_vec()),
+                Some(WEGLD_TOKEN_ID.to_vec()),
                 500,
                 WEEKLY_SUBSCRIPTION_EPOCHS,
             ),
@@ -159,10 +183,10 @@ fn claim_boosted_rewards_for_user_test() {
 
     b_mock_rc
         .borrow_mut()
-        .set_esdt_balance(&user, FIRST_TOKEN_ID, &rust_biguint!(1_000_000));
+        .set_esdt_balance(&user, WEGLD_TOKEN_ID, &rust_biguint!(1_000_000));
 
     subscription_setup
-        .call_deposit(&user, FIRST_TOKEN_ID, 1_000_000)
+        .call_deposit(&user, WEGLD_TOKEN_ID, 1_000_000)
         .assert_ok();
 
     let normal_service = 0;
@@ -222,7 +246,7 @@ fn claim_boosted_rewards_for_user_test() {
 
     b_mock_rc.borrow().check_esdt_balance(
         subscriber_setup.sub_wrapper.address_ref(),
-        FIRST_TOKEN_ID,
+        WEGLD_TOKEN_ID,
         &rust_biguint!(1_000),
     );
 
@@ -245,7 +269,7 @@ fn claim_boosted_rewards_for_user_test() {
     // still same subscriber balance, no funds subtracted
     b_mock_rc.borrow().check_esdt_balance(
         subscriber_setup.sub_wrapper.address_ref(),
-        FIRST_TOKEN_ID,
+        WEGLD_TOKEN_ID,
         &rust_biguint!(1_000),
     );
 
@@ -258,21 +282,27 @@ fn claim_boosted_rewards_for_user_test() {
     // still same balance, subtraction is done manually once per month
     b_mock_rc.borrow().check_esdt_balance(
         subscriber_setup.sub_wrapper.address_ref(),
-        FIRST_TOKEN_ID,
+        WEGLD_TOKEN_ID,
         &rust_biguint!(1_000),
     );
 }
 
 #[test]
 fn claim_boosted_rewards_for_user_multiple_farms_test() {
-    let (b_mock_rc, pair_setup, mut farm_setup, mut subscription_setup, mut subscriber_setup) =
-        init_all(
-            pair::contract_obj,
-            farm_with_locked_rewards::contract_obj,
-            energy_factory::contract_obj,
-            subscription_fee::contract_obj,
-            farm_boosted_rewards_subscriber::contract_obj,
-        );
+    let (
+        b_mock_rc,
+        mex_pair_setup,
+        _stable_pair_setup,
+        mut farm_setup,
+        mut subscription_setup,
+        mut subscriber_setup,
+    ) = init_all(
+        pair::contract_obj,
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+        subscription_fee::contract_obj,
+        farm_boosted_rewards_subscriber::contract_obj,
+    );
 
     let mut farm_setup2 = FarmSetup::new(
         b_mock_rc.clone(),
@@ -281,7 +311,7 @@ fn claim_boosted_rewards_for_user_multiple_farms_test() {
         LOCKED_TOKEN_ID,
         LP_TOKEN_ID,
         7_500u64,
-        pair_setup.pair_wrapper.address_ref(),
+        mex_pair_setup.pair_wrapper.address_ref(),
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );
@@ -298,12 +328,12 @@ fn claim_boosted_rewards_for_user_multiple_farms_test() {
     subscriber_setup
         .call_register_service(vec![
             (
-                Some(FIRST_TOKEN_ID.to_vec()),
+                Some(WEGLD_TOKEN_ID.to_vec()),
                 1_000,
                 WEEKLY_SUBSCRIPTION_EPOCHS,
             ),
             (
-                Some(FIRST_TOKEN_ID.to_vec()),
+                Some(WEGLD_TOKEN_ID.to_vec()),
                 500,
                 WEEKLY_SUBSCRIPTION_EPOCHS,
             ),
@@ -316,10 +346,10 @@ fn claim_boosted_rewards_for_user_multiple_farms_test() {
 
     b_mock_rc
         .borrow_mut()
-        .set_esdt_balance(&user, FIRST_TOKEN_ID, &rust_biguint!(1_000_000));
+        .set_esdt_balance(&user, WEGLD_TOKEN_ID, &rust_biguint!(1_000_000));
 
     subscription_setup
-        .call_deposit(&user, FIRST_TOKEN_ID, 1_000_000)
+        .call_deposit(&user, WEGLD_TOKEN_ID, 1_000_000)
         .assert_ok();
 
     let normal_service = 0;
@@ -402,7 +432,7 @@ fn claim_boosted_rewards_for_user_multiple_farms_test() {
 
     b_mock_rc.borrow().check_esdt_balance(
         subscriber_setup.sub_wrapper.address_ref(),
-        FIRST_TOKEN_ID,
+        WEGLD_TOKEN_ID,
         &rust_biguint!(1_000),
     );
 
@@ -430,7 +460,7 @@ fn claim_boosted_rewards_for_user_multiple_farms_test() {
     // still same subscriber balance, no funds subtracted
     b_mock_rc.borrow().check_esdt_balance(
         subscriber_setup.sub_wrapper.address_ref(),
-        FIRST_TOKEN_ID,
+        WEGLD_TOKEN_ID,
         &rust_biguint!(1_000),
     );
 
@@ -443,21 +473,27 @@ fn claim_boosted_rewards_for_user_multiple_farms_test() {
     // still same balance, subtraction is done manually once per month
     b_mock_rc.borrow().check_esdt_balance(
         subscriber_setup.sub_wrapper.address_ref(),
-        FIRST_TOKEN_ID,
+        WEGLD_TOKEN_ID,
         &rust_biguint!(1_000),
     );
 }
 
 #[test]
 fn claim_boosted_rewards_for_premium_user_test() {
-    let (b_mock_rc, _pair_setup, mut farm_setup, mut subscription_setup, mut subscriber_setup) =
-        init_all(
-            pair::contract_obj,
-            farm_with_locked_rewards::contract_obj,
-            energy_factory::contract_obj,
-            subscription_fee::contract_obj,
-            farm_boosted_rewards_subscriber::contract_obj,
-        );
+    let (
+        b_mock_rc,
+        _mex_pair_setup,
+        _stable_pair_setup,
+        mut farm_setup,
+        mut subscription_setup,
+        mut subscriber_setup,
+    ) = init_all(
+        pair::contract_obj,
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+        subscription_fee::contract_obj,
+        farm_boosted_rewards_subscriber::contract_obj,
+    );
 
     let farm_id = subscriber_setup.call_add_farm(farm_setup.farm_wrapper.address_ref());
     let farm_list = vec![farm_id];
@@ -471,12 +507,12 @@ fn claim_boosted_rewards_for_premium_user_test() {
     subscriber_setup
         .call_register_service(vec![
             (
-                Some(FIRST_TOKEN_ID.to_vec()),
+                Some(WEGLD_TOKEN_ID.to_vec()),
                 1_000,
                 WEEKLY_SUBSCRIPTION_EPOCHS,
             ),
             (
-                Some(FIRST_TOKEN_ID.to_vec()),
+                Some(WEGLD_TOKEN_ID.to_vec()),
                 500,
                 WEEKLY_SUBSCRIPTION_EPOCHS,
             ),
@@ -489,10 +525,10 @@ fn claim_boosted_rewards_for_premium_user_test() {
 
     b_mock_rc
         .borrow_mut()
-        .set_esdt_balance(&user, FIRST_TOKEN_ID, &rust_biguint!(1_000_000));
+        .set_esdt_balance(&user, WEGLD_TOKEN_ID, &rust_biguint!(1_000_000));
 
     subscription_setup
-        .call_deposit(&user, FIRST_TOKEN_ID, 1_000_000)
+        .call_deposit(&user, WEGLD_TOKEN_ID, 1_000_000)
         .assert_ok();
 
     // Subscribe to premium service
@@ -554,7 +590,7 @@ fn claim_boosted_rewards_for_premium_user_test() {
     // Different price for premium users
     b_mock_rc.borrow().check_esdt_balance(
         subscriber_setup.sub_wrapper.address_ref(),
-        FIRST_TOKEN_ID,
+        WEGLD_TOKEN_ID,
         &rust_biguint!(500),
     );
 
@@ -577,7 +613,7 @@ fn claim_boosted_rewards_for_premium_user_test() {
     // still same subscriber balance, no funds subtracted
     b_mock_rc.borrow().check_esdt_balance(
         subscriber_setup.sub_wrapper.address_ref(),
-        FIRST_TOKEN_ID,
+        WEGLD_TOKEN_ID,
         &rust_biguint!(500),
     );
 
@@ -590,7 +626,7 @@ fn claim_boosted_rewards_for_premium_user_test() {
     // still same balance, subtraction is done manually once per month
     b_mock_rc.borrow().check_esdt_balance(
         subscriber_setup.sub_wrapper.address_ref(),
-        FIRST_TOKEN_ID,
+        WEGLD_TOKEN_ID,
         &rust_biguint!(500),
     );
 }

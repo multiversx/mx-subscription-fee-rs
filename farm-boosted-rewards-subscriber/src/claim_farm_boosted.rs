@@ -5,6 +5,7 @@ use crate::events;
 use crate::events::ClaimRewardsOperation;
 use crate::service;
 use crate::subscriber_config;
+use crate::subscriber_config::SubscriptionUserType;
 
 #[multiversx_sc::module]
 pub trait ClaimFarmBoostedRewardsModule:
@@ -37,7 +38,11 @@ pub trait ClaimFarmBoostedRewardsModule:
         service_index: usize,
         user_farms_pairs_to_claim: MultiValueEncoded<MultiValue2<AddressId, ManagedVec<AddressId>>>,
     ) {
-        require!(service_index <= 1, "Invalid service index");
+        require!(
+            service_index == SubscriptionUserType::Normal as usize
+                || service_index == SubscriptionUserType::Premium as usize,
+            "Invalid service index"
+        );
 
         let fees_contract_address = self.fees_contract_address().get();
 
