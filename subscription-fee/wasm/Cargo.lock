@@ -83,7 +83,7 @@ checksum = "6fe2267d4ed49bc07b63801559be28c718ea06c4738b7a03c94df7386d2cde46"
 [[package]]
 name = "mergeable"
 version = "0.0.0"
-source = "git+https://github.com/multiversx/mx-exchange-sc?rev=4be981b#4be981b2477e9f9976dc598ee2aca926cac8456b"
+source = "git+https://github.com/multiversx/mx-exchange-sc?rev=1fb9a1d#1fb9a1dcc47d5a37079b50f8bbd0caa2ebea441e"
 dependencies = [
  "multiversx-sc",
 ]

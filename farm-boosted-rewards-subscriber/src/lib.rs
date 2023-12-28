@@ -54,22 +54,44 @@ pub trait SubscriberContractMain:
             "Invalid pair address"
         );
 
-        self.base_init(fees_contract_address);
-        self.energy_threshold().set(energy_threshold);
-        self.mex_token_id().set(mex_token_id);
-        self.wegld_token_id().set(wegld_token_id);
-        self.normal_user_percentage().set(normal_user_percentages);
-        self.premium_user_percentage().set(premium_user_percentages);
-        self.simple_lock_address().set(simple_lock_address);
-        self.mex_pair().set(mex_pair_address);
-        self.lock_period().set(lock_period);
+        let first_token_id = self.first_token_id().get_from_address(&mex_pair_address);
+        let second_token_id = self.second_token_id().get_from_address(&mex_pair_address);
 
-        self.total_fees().set(UniquePayments::new());
+        require!(
+            first_token_id == wegld_token_id || first_token_id == mex_token_id,
+            "Wrong pair address"
+        );
+        require!(
+            second_token_id == wegld_token_id || second_token_id == mex_token_id,
+            "Wrong pair address"
+        );
+
+        self.base_init(fees_contract_address);
+        self.energy_threshold().set_if_empty(energy_threshold);
+        self.mex_token_id().set_if_empty(mex_token_id);
+        self.wegld_token_id().set_if_empty(wegld_token_id);
+        self.normal_user_percentage()
+            .set_if_empty(normal_user_percentages);
+        self.premium_user_percentage()
+            .set_if_empty(premium_user_percentages);
+        self.simple_lock_address().set_if_empty(simple_lock_address);
+        self.mex_pair().set_if_empty(mex_pair_address);
+        self.lock_period().set_if_empty(lock_period);
+        self.total_fees().set_if_empty(UniquePayments::new());
     }
 
-    #[endpoint]
-    fn upgrade(&self, energy_threshold: BigUint, lock_period: Epoch) {
-        self.energy_threshold().set(energy_threshold);
+    #[upgrade]
+    fn upgrade(&self) {}
+
+    #[only_owner]
+    #[endpoint(setLockPeriod)]
+    fn set_lock_period(&self, lock_period: Epoch) {
         self.lock_period().set(lock_period);
+    }
+
+    #[only_owner]
+    #[endpoint(setEnergyThreshold)]
+    fn set_energy_threshold(&self, energy_threshold: BigUint) {
+        self.energy_threshold().set(energy_threshold);
     }
 }

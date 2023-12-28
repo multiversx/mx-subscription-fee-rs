@@ -32,6 +32,17 @@ pub trait CommonSubscriberModule {
         &self,
         args: MultiValueEncoded<MultiValue3<Option<TokenIdentifier>, BigUint, Epoch>>,
     ) {
+        let wegld_token_id = self.wegld_token_id().get();
+
+        for arg in args.clone() {
+            let (token_id_opt, _, _) = arg.into_tuple();
+            require!(token_id_opt.is_some(), "Invalid payment token");
+            require!(
+                token_id_opt.unwrap() == wegld_token_id,
+                "Payment token must be WEGLD"
+            );
+        }
+
         let mut proxy_instance = self.get_subscription_fee_sc_proxy_instance();
         let _: () = proxy_instance
             .register_service(args)
@@ -94,6 +105,9 @@ pub trait CommonSubscriberModule {
     #[view(getFeesContractAddress)]
     #[storage_mapper("feesContractAddress")]
     fn fees_contract_address(&self) -> SingleValueMapper<ManagedAddress>;
+
+    #[storage_mapper("wegldTokenId")]
+    fn wegld_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 
     #[view(getUserFees)]
     #[storage_mapper("userFees")]

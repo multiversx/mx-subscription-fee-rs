@@ -12,7 +12,9 @@ use multiversx_sc_scenario::{
     DebugApi,
 };
 use subscription_fee::{
-    fees::FeesModule, service::ServiceModule, subtract_payments::SubtractPaymentsModule,
+    fees::FeesModule,
+    service::ServiceModule,
+    subtract_payments::{ScResult, SubtractPaymentsModule},
     SubscriptionFee,
 };
 
@@ -156,6 +158,20 @@ where
             .borrow_mut()
             .execute_tx(caller, &self.s_wrapper, &rust_biguint!(0), |sc| {
                 let _ = sc.subtract_payment(service_index, user_id);
+            })
+    }
+
+    pub fn call_subtract_payment_with_sc_error(
+        &mut self,
+        caller: &Address,
+        service_index: usize,
+        user_id: AddressId,
+    ) -> TxResult {
+        self.b_mock
+            .borrow_mut()
+            .execute_tx(caller, &self.s_wrapper, &rust_biguint!(0), |sc| {
+                let result = sc.subtract_payment(service_index, user_id);
+                assert_eq!(result, ScResult::Err(()));
             })
     }
 

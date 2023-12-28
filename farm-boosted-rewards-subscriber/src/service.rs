@@ -35,13 +35,16 @@ pub trait ServiceModule:
         service_index: usize,
         user_ids: MultiValueEncoded<AddressId>,
     ) {
-        require!(service_index <= 1, "Invalid service index");
-        let is_premium_service = service_index == 1;
+        require!(
+            service_index == SubscriptionUserType::Normal as usize
+                || service_index == SubscriptionUserType::Premium as usize,
+            "Invalid service index"
+        );
+        let is_premium_service = service_index == SubscriptionUserType::Premium as usize;
         let energy_threshold = self.energy_threshold().get();
-
         let fees_contract_address = self.fees_contract_address().get();
-
         let mut processed_user_ids = ManagedVec::new();
+
         for user_id in user_ids {
             if is_premium_service {
                 let opt_user_address = self
@@ -80,6 +83,7 @@ pub trait ServiceModule:
     fn perform_mex_operations_endpoint(
         &self,
         service_index: usize,
+        total_min_amount_out: BigUint,
         user_ids: MultiValueEncoded<AddressId>,
     ) {
         let actions_percentage = if service_index == SubscriptionUserType::Normal as usize {
@@ -120,8 +124,12 @@ pub trait ServiceModule:
             processed_user_ids.push(user_id);
         }
 
-        let total_tokens_to_lock =
-            self.perform_mex_operation(wegld_token_id, total_fees.clone(), &actions_percentage);
+        let total_tokens_to_lock = self.perform_mex_operation(
+            wegld_token_id,
+            total_fees.clone(),
+            &actions_percentage,
+            total_min_amount_out,
+        );
 
         if total_tokens_to_lock.amount == 0 {
             return;
@@ -131,18 +139,29 @@ pub trait ServiceModule:
         let lock_period = self.lock_period().get();
 
         // Call lock for each user to properly update their energy
-        for mex_operation in mex_operations_list.into_iter() {
-            let user_amount = &total_tokens_to_lock.amount * &mex_operation.amount / &total_fees;
-            self.call_lock_tokens(
-                simple_lock_address.clone(),
-                EsdtTokenPayment::new(
-                    total_tokens_to_lock.token_identifier.clone(),
-                    0,
-                    user_amount,
-                ),
-                lock_period,
-                mex_operation.user_address,
-            );
+        let mut total_processed_amount = BigUint::zero();
+        for i in 0..mex_operations_list.len() {
+            let mex_operation = mex_operations_list.get(i);
+            let user_amount = if i < mex_operations_list.len() - 1 {
+                let amount = &total_tokens_to_lock.amount * &mex_operation.amount / &total_fees;
+                total_processed_amount += &amount;
+                amount
+            } else {
+                &total_tokens_to_lock.amount - &total_processed_amount
+            };
+
+            if user_amount > 0 {
+                self.call_lock_tokens(
+                    simple_lock_address.clone(),
+                    EsdtTokenPayment::new(
+                        total_tokens_to_lock.token_identifier.clone(),
+                        0,
+                        user_amount,
+                    ),
+                    lock_period,
+                    mex_operation.user_address,
+                );
+            }
         }
 
         self.emit_mex_operation_event(service_index, processed_user_ids);
@@ -153,6 +172,7 @@ pub trait ServiceModule:
         token_id: TokenIdentifier,
         total_tokens: BigUint,
         actions_percentages: &MexActionsPercentages,
+        total_min_amount_out: BigUint,
     ) -> EsdtTokenPayment {
         let actions_value = actions_percentages.get_amounts_per_category(&total_tokens);
         let total_sell_amount = actions_value.get_sell_amount();
@@ -167,7 +187,7 @@ pub trait ServiceModule:
             });
         }
 
-        let bought_mex = self.buy_mex(token_id, total_sell_amount);
+        let bought_mex = self.buy_mex(token_id, total_sell_amount, total_min_amount_out);
         let mex_to_lock = &bought_mex.amount * actions_percentages.lock
             / (actions_percentages.lock + actions_percentages.burn);
         let mex_to_burn = &bought_mex.amount - &mex_to_lock;
@@ -180,13 +200,18 @@ pub trait ServiceModule:
         EsdtTokenPayment::new(bought_mex.token_identifier, 0, mex_to_lock)
     }
 
-    fn buy_mex(&self, token_id: TokenIdentifier, amount: BigUint) -> EsdtTokenPayment {
+    fn buy_mex(
+        &self,
+        token_id: TokenIdentifier,
+        amount: BigUint,
+        min_amount_out: BigUint,
+    ) -> EsdtTokenPayment {
         let pair_mapper = self.mex_pair();
         require!(!pair_mapper.is_empty(), "The MEX pair is not set");
 
         let mex_token_id = self.mex_token_id().get();
         let pair_address = pair_mapper.get();
 
-        self.call_swap_to_mex(pair_address, mex_token_id, token_id, amount)
+        self.call_swap_to_mex(pair_address, mex_token_id, token_id, amount, min_amount_out)
     }
 }
