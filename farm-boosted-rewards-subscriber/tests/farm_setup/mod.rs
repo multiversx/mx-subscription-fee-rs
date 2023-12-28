@@ -6,6 +6,7 @@ use std::rc::Rc;
 use multiversx_sc::codec::multi_types::OptionalValue;
 use multiversx_sc::storage::mappers::StorageTokenWrapper;
 use multiversx_sc::types::{Address, BigInt, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
+use multiversx_sc_modules::pause::PauseModule;
 use multiversx_sc_scenario::testing_framework::TxResult;
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
@@ -101,6 +102,7 @@ where
 
                 sc.locked_token()
                     .set_token_id(managed_token_id!(locked_token_id));
+                sc.unpause_endpoint();
             })
             .assert_ok();
 
@@ -169,6 +171,12 @@ where
             energy_factory_wrapper.address_ref(),
             locked_token_id,
             &locked_reward_token_roles[..],
+        );
+
+        b_mock.borrow_mut().set_esdt_local_roles(
+            energy_factory_wrapper.address_ref(),
+            reward_token_id,
+            &farming_token_roles[..],
         );
 
         b_mock

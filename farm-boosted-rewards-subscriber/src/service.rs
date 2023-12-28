@@ -41,12 +41,10 @@ pub trait ServiceModule:
             "Invalid service index"
         );
         let is_premium_service = service_index == SubscriptionUserType::Premium as usize;
-
         let energy_threshold = self.energy_threshold().get();
-
         let fees_contract_address = self.fees_contract_address().get();
-
         let mut processed_user_ids = ManagedVec::new();
+
         for user_id in user_ids {
             if is_premium_service {
                 let opt_user_address = self
@@ -141,8 +139,17 @@ pub trait ServiceModule:
         let lock_period = self.lock_period().get();
 
         // Call lock for each user to properly update their energy
-        for mex_operation in mex_operations_list.into_iter() {
-            let user_amount = &total_tokens_to_lock.amount * &mex_operation.amount / &total_fees;
+        let mut total_processed_amount = BigUint::zero();
+        for i in 0..mex_operations_list.len() {
+            let mex_operation = mex_operations_list.get(i);
+            let user_amount = if i < mex_operations_list.len() - 1 {
+                let amount = &total_tokens_to_lock.amount * &mex_operation.amount / &total_fees;
+                total_processed_amount += &amount;
+                amount
+            } else {
+                &total_tokens_to_lock.amount - &total_processed_amount
+            };
+
             if user_amount > 0 {
                 self.call_lock_tokens(
                     simple_lock_address.clone(),

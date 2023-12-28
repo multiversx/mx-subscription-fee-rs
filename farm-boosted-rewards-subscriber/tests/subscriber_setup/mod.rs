@@ -11,7 +11,7 @@ use farm_boosted_rewards_subscriber::{
 use multiversx_sc::{
     codec::multi_types::MultiValue2,
     storage::mappers::AddressId,
-    types::{Address, ManagedVec, MultiValueEncoded},
+    types::{Address, EsdtLocalRole, ManagedVec, MultiValueEncoded},
 };
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
@@ -87,6 +87,13 @@ where
                 sc.set_energy_factory_address(managed_address!(energy_factory_address));
             })
             .assert_ok();
+
+        let mex_token_roles = [EsdtLocalRole::Burn];
+        b_mock.borrow_mut().set_esdt_local_roles(
+            sub_wrapper.address_ref(),
+            reward_token_id,
+            &mex_token_roles[..],
+        );
 
         Self {
             b_mock,
@@ -182,6 +189,38 @@ where
                     service_index,
                     user_farms_pairs_to_claim,
                 );
+            },
+        )
+    }
+
+    pub fn call_perform_mex_operation(
+        &mut self,
+        service_index: usize,
+        users_list: Vec<AddressId>,
+    ) -> TxResult {
+        self.b_mock.borrow_mut().execute_tx(
+            &self.owner_addr,
+            &self.sub_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut user_ids = MultiValueEncoded::new();
+                for user_id in users_list {
+                    user_ids.push(user_id);
+                }
+
+                sc.perform_mex_operations_endpoint(service_index, managed_biguint!(1u64), user_ids);
+            },
+        )
+    }
+
+    pub fn call_claim_fees(&mut self, expected_output_payments_no: usize) -> TxResult {
+        self.b_mock.borrow_mut().execute_tx(
+            &self.owner_addr,
+            &self.sub_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let result = sc.claim_fees();
+                assert_eq!(result.len(), expected_output_payments_no);
             },
         )
     }

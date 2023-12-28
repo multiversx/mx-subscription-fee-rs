@@ -630,3 +630,123 @@ fn claim_boosted_rewards_for_premium_user_test() {
         &rust_biguint!(500),
     );
 }
+
+#[test]
+fn mex_operation_with_claim_fees_test() {
+    let (
+        b_mock_rc,
+        _mex_pair_setup,
+        _stable_pair_setup,
+        _farm_setup,
+        mut subscription_setup,
+        mut subscriber_setup,
+    ) = init_all(
+        pair::contract_obj,
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+        subscription_fee::contract_obj,
+        farm_boosted_rewards_subscriber::contract_obj,
+    );
+
+    let first_user = b_mock_rc
+        .borrow_mut()
+        .create_user_account(&rust_biguint!(0));
+    let second_user = b_mock_rc
+        .borrow_mut()
+        .create_user_account(&rust_biguint!(0));
+    let first_user_id = 1;
+    let second_user_id = 2;
+
+    b_mock_rc.borrow_mut().set_block_epoch(2);
+
+    subscriber_setup
+        .call_register_service(vec![
+            (
+                Some(WEGLD_TOKEN_ID.to_vec()),
+                1_000,
+                WEEKLY_SUBSCRIPTION_EPOCHS,
+            ),
+            (
+                Some(WEGLD_TOKEN_ID.to_vec()),
+                500,
+                WEEKLY_SUBSCRIPTION_EPOCHS,
+            ),
+        ])
+        .assert_ok();
+
+    subscription_setup
+        .call_approve_service(subscriber_setup.sub_wrapper.address_ref())
+        .assert_ok();
+
+    b_mock_rc
+        .borrow_mut()
+        .set_esdt_balance(&first_user, WEGLD_TOKEN_ID, &rust_biguint!(1_000_000));
+
+    subscription_setup
+        .call_deposit(&first_user, WEGLD_TOKEN_ID, 1_000_000)
+        .assert_ok();
+
+    b_mock_rc.borrow_mut().set_esdt_balance(
+        &second_user,
+        WEGLD_TOKEN_ID,
+        &rust_biguint!(1_000_000),
+    );
+
+    subscription_setup
+        .call_deposit(&second_user, WEGLD_TOKEN_ID, 1_000_000)
+        .assert_ok();
+
+    // Subscribe to standard service
+    let standard_service = 0;
+    subscription_setup
+        .call_subscribe(&first_user, vec![(1, standard_service)])
+        .assert_ok();
+    subscription_setup
+        .call_subscribe(&second_user, vec![(1, standard_service)])
+        .assert_ok();
+
+    subscriber_setup
+        .call_subtract_payment(standard_service, vec![first_user_id, second_user_id])
+        .assert_ok();
+
+    subscriber_setup
+        .call_perform_mex_operation(standard_service, vec![first_user_id, second_user_id])
+        .assert_ok();
+
+    // Expected locked tokens balance: 1799
+    b_mock_rc
+        .borrow()
+        .check_nft_balance::<LockedTokenAttributes<DebugApi>>(
+            &first_user,
+            LOCKED_TOKEN_ID,
+            1,
+            &rust_biguint!(1799),
+            None,
+        );
+
+    // Expected locked tokens balance: 1800 - the last user is computed by difference
+    b_mock_rc
+        .borrow()
+        .check_nft_balance::<LockedTokenAttributes<DebugApi>>(
+            &second_user,
+            LOCKED_TOKEN_ID,
+            1,
+            &rust_biguint!(1800),
+            None,
+        );
+
+    b_mock_rc.borrow().check_esdt_balance(
+        &subscriber_setup.owner_addr,
+        WEGLD_TOKEN_ID,
+        &rust_biguint!(0),
+    );
+
+    let expected_fee_amount = 160;
+    subscriber_setup.call_claim_fees(1).assert_ok();
+
+    b_mock_rc.borrow().check_esdt_balance(
+        &subscriber_setup.owner_addr,
+        WEGLD_TOKEN_ID,
+        &rust_biguint!(expected_fee_amount),
+    );
+}
