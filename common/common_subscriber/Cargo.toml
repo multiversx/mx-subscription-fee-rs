@@ -1,0 +1,14 @@
+[package]
+name = "common_subscriber"
+version = "0.0.0"
+authors = ["MultiversX <contact@multiversx.com>"]
+edition = "2021"
+
+[lib]
+path = "src/common_subscriber.rs"
+
+[dependencies.subscription-fee]
+path = "../../subscription-fee"
+
+[dependencies.multiversx-sc]
+version = "=0.45.2"

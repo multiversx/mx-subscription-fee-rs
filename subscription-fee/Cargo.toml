@@ -1,7 +1,7 @@
 [package]
 name = "subscription-fee"
 version = "0.0.0"
-authors = [ "you",]
+authors = ["you"]
 edition = "2018"
 publish = false
 
@@ -9,29 +9,28 @@ publish = false
 path = "src/lib.rs"
 
 [dependencies.multiversx-sc]
-version = "=0.43.2"
+version = "=0.45.2"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.multiversx-sc-modules]
-version = "=0.43.2"
-
-[dependencies.auto-farm]
-git = "https://github.com/multiversx/mx-exchange-tools-sc"
-rev = "39e355f"
-
-[dev-dependencies.pair]
-git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "7f25a72"
-
-[dev-dependencies.pausable]
-git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "7f25a72"
-
-[dev-dependencies.multiversx-sc-scenario]
-version = "=0.43.2"
+version = "=0.45.2"
 
 [dev-dependencies]
 num-bigint = "0.4.2"
 num-traits = "0.2"
 hex = "0.4"
 hex-literal = "0.3.4"
+
+[dependencies.common_structs]
+path = "../common/common_structs"
+
+[dev-dependencies.pair]
+git = "https://github.com/multiversx/mx-exchange-sc"
+rev = "1fb9a1d"
+
+[dev-dependencies.pausable]
+git = "https://github.com/multiversx/mx-exchange-sc"
+rev = "1fb9a1d"
+
+[dev-dependencies.multiversx-sc-scenario]
+version = "=0.45.2"

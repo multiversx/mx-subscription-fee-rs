@@ -1,32 +1,29 @@
-use auto_farm::common::address_to_id_mapper::{AddressId, AddressToIdMapper, NULL_ID};
-
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
+use crate::common_storage;
+use crate::subtract_payments::Epoch;
+use crate::{fees, pair_actions};
+
+pub const MAX_USER_DEPOSITS: usize = 20;
+pub const MAX_SERVICES_LENGTH: usize = 20;
+
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem)]
 pub struct ServiceInfo<M: ManagedTypeApi> {
-    pub sc_address: ManagedAddress<M>,
-    pub opt_payment_token: Option<EgldOrEsdtTokenIdentifier<M>>,
+    pub opt_payment_token: Option<TokenIdentifier<M>>,
     pub amount: BigUint<M>,
-}
-
-#[derive(TypeAbi, TopEncode, TopDecode)]
-pub enum SubscriptionType {
-    None,
-    Daily,
-    Weekly,
-    Monthly,
+    pub subscription_epochs: Epoch,
 }
 
 #[multiversx_sc::module]
-pub trait ServiceModule: crate::fees::FeesModule {
-    /// Arguments are pairs of sc_address, opt_payment_token and payment_amount
+pub trait ServiceModule:
+    fees::FeesModule + pair_actions::PairActionsModule + common_storage::CommonStorageModule
+{
+    /// Arguments are MultiValue3 of opt_payment_token, payment_amount and subscription_epochs
     #[endpoint(registerService)]
     fn register_service(
         &self,
-        args: MultiValueEncoded<
-            MultiValue3<ManagedAddress, Option<EgldOrEsdtTokenIdentifier>, BigUint>,
-        >,
+        args: MultiValueEncoded<MultiValue3<Option<TokenIdentifier>, BigUint, Epoch>>,
     ) {
         require!(!args.is_empty(), "No arguments provided");
 
@@ -36,12 +33,9 @@ pub trait ServiceModule: crate::fees::FeesModule {
 
         let mut services = ManagedVec::<Self::Api, _>::new();
         for arg in args {
-            let (sc_address, opt_payment_token, amount) = arg.into_tuple();
-            require!(
-                self.blockchain().is_smart_contract(&sc_address) && !sc_address.is_zero(),
-                "Invalid SC address"
-            );
+            let (opt_payment_token, amount, subscription_epochs) = arg.into_tuple();
 
+            require!(subscription_epochs > 0, "Subscription epochs must be > 0");
             if let Some(token_id) = &opt_payment_token {
                 require!(
                     self.accepted_fees_tokens().contains(token_id),
@@ -50,20 +44,78 @@ pub trait ServiceModule: crate::fees::FeesModule {
             }
 
             services.push(ServiceInfo {
-                sc_address,
                 opt_payment_token,
                 amount,
+                subscription_epochs,
             });
         }
 
         self.pending_service_info(&service_address)
-            .update(|existing_services| existing_services.extend(services.iter()));
+            .update(|existing_services| {
+                existing_services.extend(services.iter());
+                require!(
+                    existing_services.len() <= MAX_SERVICES_LENGTH,
+                    "Maximum services length reached"
+                );
+            });
         let _ = self.pending_services().insert(service_address);
+    }
+
+    #[endpoint(addExtraServices)]
+    fn add_extra_services(
+        &self,
+        args: MultiValueEncoded<MultiValue3<Option<TokenIdentifier>, BigUint, Epoch>>,
+    ) {
+        require!(!args.is_empty(), "No arguments provided");
+
+        let service_address = self.blockchain().get_caller();
+        let existing_service_id = self.service_id().get_id(&service_address);
+        require!(existing_service_id != NULL_ID, "Service not registered");
+
+        let mut services = ManagedVec::<Self::Api, _>::new();
+        for arg in args {
+            let (opt_payment_token, amount, subscription_epochs) = arg.into_tuple();
+
+            require!(subscription_epochs > 0, "Subscription epochs must be > 0");
+            if let Some(token_id) = &opt_payment_token {
+                require!(
+                    self.accepted_fees_tokens().contains(token_id),
+                    "Invalid token ID"
+                );
+            }
+
+            services.push(ServiceInfo {
+                opt_payment_token,
+                amount,
+                subscription_epochs,
+            });
+        }
+
+        let service_info_mapper = self.service_info(existing_service_id);
+        service_info_mapper.update(|existing_services| {
+            existing_services.extend(services.iter());
+            require!(
+                existing_services.len() <= MAX_SERVICES_LENGTH,
+                "Maximum services length reached"
+            );
+        });
     }
 
     #[endpoint(unregisterService)]
     fn unregister_service(&self) {
         let service_address = self.blockchain().get_caller();
+        let service_id = self.service_id().remove_by_address(&service_address);
+        if service_id != NULL_ID {
+            self.service_info(service_id).clear();
+        }
+
+        let _ = self.pending_services().swap_remove(&service_address);
+        self.pending_service_info(&service_address).clear();
+    }
+
+    #[only_owner]
+    #[endpoint(unregisterServiceByOwner)]
+    fn unregister_service_by_owner(&self, service_address: ManagedAddress) {
         let service_id = self.service_id().remove_by_address(&service_address);
         if service_id != NULL_ID {
             self.service_info(service_id).clear();
@@ -85,32 +137,28 @@ pub trait ServiceModule: crate::fees::FeesModule {
         let service_info = self.pending_service_info(&service_address).take();
         self.service_info(service_id).set(&service_info);
 
+        require!(
+            self.service_info(service_id).get().len() <= MAX_SERVICES_LENGTH,
+            "Maximum services lenght reached"
+        );
+
         let _ = self.pending_services().swap_remove(&service_address);
     }
 
-    /// subscribe with pair of service_id, service index, subscription type
+    /// subscribe with the following arguments: service_id, service index
     #[endpoint]
-    fn subscribe(
-        &self,
-        services: MultiValueEncoded<MultiValue3<AddressId, usize, SubscriptionType>>,
-    ) {
+    fn subscribe(&self, services: MultiValueEncoded<MultiValue2<AddressId, usize>>) {
         let caller = self.blockchain().get_caller();
         let caller_id = self.user_id().get_id_non_zero(&caller);
 
-        for pair in services {
-            let (service_id, service_index, subscription_type) = pair.into_tuple();
+        for service in services {
+            let (service_id, service_index) = service.into_tuple();
             let service_options = self.service_info(service_id).get();
             require!(
                 service_index < service_options.len(),
                 "Invalid service index"
             );
-            require!(
-                !matches!(subscription_type, SubscriptionType::None),
-                "Invalid subscription type"
-            );
 
-            self.subscription_type(caller_id, service_id, service_index)
-                .set(subscription_type);
             let _ = self
                 .subscribed_users(service_id, service_index)
                 .insert(caller_id);
@@ -123,56 +171,14 @@ pub trait ServiceModule: crate::fees::FeesModule {
         let caller = self.blockchain().get_caller();
         let caller_id = self.user_id().get_id_non_zero(&caller);
 
-        for pair in services {
-            let (service_id, service_index) = pair.into_tuple();
-            let service_options = self.service_info(service_id).get();
-            require!(
-                service_index < service_options.len(),
-                "Invalid service index"
-            );
+        for service in services {
+            let (service_id, service_index) = service.into_tuple();
 
-            self.subscription_type(caller_id, service_id, service_index)
-                .clear();
             let _ = self
                 .subscribed_users(service_id, service_index)
                 .swap_remove(&caller_id);
+            self.user_next_payment_epoch(caller_id, service_id, service_index)
+                .clear();
         }
     }
-
-    #[storage_mapper("serviceId")]
-    fn service_id(&self) -> AddressToIdMapper<Self::Api>;
-
-    #[view(getPendingServices)]
-    #[storage_mapper("pendingServices")]
-    fn pending_services(&self) -> UnorderedSetMapper<ManagedAddress>;
-
-    #[storage_mapper("pendingServiceInfo")]
-    fn pending_service_info(
-        &self,
-        service_address: &ManagedAddress,
-    ) -> SingleValueMapper<ManagedVec<ServiceInfo<Self::Api>>>;
-
-    // one service may have multiple options
-    #[view(getServiceInfo)]
-    #[storage_mapper("serviceInfo")]
-    fn service_info(
-        &self,
-        service_id: AddressId,
-    ) -> SingleValueMapper<ManagedVec<ServiceInfo<Self::Api>>>;
-
-    #[view(getSubscribedUsers)]
-    #[storage_mapper("subscribedUsers")]
-    fn subscribed_users(
-        &self,
-        service_id: AddressId,
-        service_index: usize,
-    ) -> UnorderedSetMapper<AddressId>;
-
-    #[storage_mapper("subscriptionType")]
-    fn subscription_type(
-        &self,
-        user_id: AddressId,
-        service_id: AddressId,
-        service_index: usize,
-    ) -> SingleValueMapper<SubscriptionType>;
 }

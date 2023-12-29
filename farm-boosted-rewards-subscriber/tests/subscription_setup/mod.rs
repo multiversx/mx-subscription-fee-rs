@@ -2,20 +2,18 @@
 
 use std::{cell::RefCell, rc::Rc};
 
-use auto_farm::common::address_to_id_mapper::AddressId;
-use multiversx_sc::types::{
-    Address, EgldOrEsdtTokenIdentifier, MultiValueEncoded, TokenIdentifier,
+use multiversx_sc::{
+    storage::mappers::AddressId,
+    types::{Address, MultiValueEncoded},
 };
 use multiversx_sc_scenario::{
-    managed_address, rust_biguint,
+    managed_address, managed_token_id, rust_biguint,
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper, TxResult},
     DebugApi,
 };
-use subscription_fee::{
-    fees::FeesModule,
-    service::{ServiceModule, SubscriptionType},
-    SubscriptionFee,
-};
+use subscription_fee::{fees::FeesModule, service::ServiceModule, SubscriptionFee};
+
+use crate::{USDC_TOKEN_ID, WEGLD_TOKEN_ID};
 
 pub struct SubscriptionSetup<SubscriptionObjBuilder>
 where
@@ -51,16 +49,15 @@ where
             .execute_tx(owner_addr, &s_wrapper, &rust_zero, |sc| {
                 let mut args = MultiValueEncoded::new();
                 for arg in accepted_tokens {
-                    if &arg == b"EGLD" {
-                        let token_id = EgldOrEsdtTokenIdentifier::egld();
-                        args.push(token_id);
-                    } else {
-                        let token_id = TokenIdentifier::from_esdt_bytes(arg);
-                        args.push(EgldOrEsdtTokenIdentifier::esdt(token_id));
-                    }
+                    args.push(managed_token_id!(arg));
                 }
 
-                sc.init(managed_address!(pair_address), args);
+                sc.init(
+                    managed_token_id!(USDC_TOKEN_ID),
+                    managed_token_id!(WEGLD_TOKEN_ID),
+                    managed_address!(pair_address),
+                    args,
+                );
             })
             .assert_ok();
 
@@ -95,17 +92,13 @@ where
         )
     }
 
-    pub fn call_subscribe(
-        &mut self,
-        caller: &Address,
-        args: Vec<(AddressId, usize, SubscriptionType)>,
-    ) -> TxResult {
+    pub fn call_subscribe(&mut self, caller: &Address, args: Vec<(AddressId, usize)>) -> TxResult {
         self.b_mock
             .borrow_mut()
             .execute_tx(caller, &self.s_wrapper, &rust_biguint!(0), |sc| {
                 let mut managed_args = MultiValueEncoded::new();
                 for arg in args {
-                    managed_args.push((arg.0, arg.1, arg.2).into());
+                    managed_args.push((arg.0, arg.1).into());
                 }
 
                 sc.subscribe(managed_args);

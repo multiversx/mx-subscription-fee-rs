@@ -1,33 +1,25 @@
 #![no_std]
-#![feature(trait_alias)]
-
-use core::marker::PhantomData;
-
-use auto_farm::common::{address_to_id_mapper::AddressId, unique_payments::UniquePayments};
-use buy_mex::MexActionsPercentages;
-use subscriber::base_functions::{AllBaseTraits, InterpretedResult, SubscriberContract};
-use subscription_fee::{service::ServiceInfo, subtract_payments::Epoch};
-
-use crate::claim_farm_boosted::AdditionalFarmData;
 
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-pub const GAS_TO_SAVE_PERFORM_ACTION_PROGRESS: u64 = 100_000;
+use common_structs::UniquePayments;
+use subscriber_config::MexActionsPercentages;
+use subscription_fee::subtract_payments::Epoch;
 
-pub mod buy_mex;
 pub mod claim_farm_boosted;
+pub mod events;
+pub mod service;
+pub mod subscriber_config;
 
 #[multiversx_sc::contract]
 pub trait SubscriberContractMain:
-    claim_farm_boosted::ClaimFarmBoostedRewardsModule
-    + buy_mex::BuyMexModule
-    + subscriber::base_init::BaseInitModule
-    + subscriber::service::ServiceModule
-    + subscriber::daily_operations::DailyOperationsModule
-    + subscriber::common_storage::CommonStorageModule
+    subscriber_config::SubscriberConfigModule
+    + claim_farm_boosted::ClaimFarmBoostedRewardsModule
+    + service::ServiceModule
+    + common_subscriber::CommonSubscriberModule
     + energy_query::EnergyQueryModule
-    + multiversx_sc_modules::ongoing_operation::OngoingOperationModule
+    + events::EventsModule
 {
     /// Percentages must add up to 10,000 each, where 10,000 = 100%
     /// Lock period is number of epochs the tokens should be locked for
@@ -37,12 +29,18 @@ pub trait SubscriberContractMain:
         fees_contract_address: ManagedAddress,
         energy_threshold: BigUint,
         mex_token_id: TokenIdentifier,
+        wegld_token_id: TokenIdentifier,
         normal_user_percentages: MexActionsPercentages,
         premium_user_percentages: MexActionsPercentages,
         simple_lock_address: ManagedAddress,
+        mex_pair_address: ManagedAddress,
         lock_period: Epoch,
     ) {
         require!(mex_token_id.is_valid_esdt_identifier(), "Invalid token ID");
+        require!(
+            wegld_token_id.is_valid_esdt_identifier(),
+            "Invalid token ID"
+        );
         require!(
             normal_user_percentages.is_valid() && premium_user_percentages.is_valid(),
             "Invalid percentages"
@@ -51,91 +49,49 @@ pub trait SubscriberContractMain:
             self.blockchain().is_smart_contract(&simple_lock_address),
             "Invalid address"
         );
-
-        self.base_init(fees_contract_address);
-        self.energy_threshold().set(energy_threshold);
-        self.mex_token_id().set(mex_token_id);
-        self.normal_user_percentage().set(normal_user_percentages);
-        self.premium_user_percentage().set(premium_user_percentages);
-        self.simple_lock_address().set(simple_lock_address);
-        self.lock_period().set(lock_period);
-
-        self.total_fees().set(UniquePayments::new());
-    }
-
-    #[endpoint(performAction)]
-    fn perform_action_endpoint(
-        &self,
-        service_index: usize,
-        users_to_claim: MultiValueEncoded<AddressId>,
-    ) -> OperationCompletionStatus {
-        require!(service_index <= 1, "invalid index");
-
-        let total_users = users_to_claim.len();
-        let mut args_vec = ManagedVec::new();
-        for _ in 0..total_users {
-            args_vec.push(AdditionalFarmData { dummy_data: 0 });
-        }
-
-        let own_address = self.blockchain().get_sc_address();
-        let fees_contract_address = self.fees_contract_address().get();
-        let service_id = self
-            .service_id()
-            .get_id_at_address_non_zero(&fees_contract_address, &own_address);
-
-        let mut user_index = self.get_user_index(&fees_contract_address, service_id, service_index);
-        let run_result = self.perform_service::<FarmClaimBoostedWrapper<Self>>(
-            GAS_TO_SAVE_PERFORM_ACTION_PROGRESS,
-            service_index,
-            &mut user_index,
-            args_vec,
+        require!(
+            self.blockchain().is_smart_contract(&mex_pair_address),
+            "Invalid pair address"
         );
 
-        self.user_index().set(user_index);
+        let first_token_id = self.first_token_id().get_from_address(&mex_pair_address);
+        let second_token_id = self.second_token_id().get_from_address(&mex_pair_address);
 
-        run_result
+        require!(
+            first_token_id == wegld_token_id || first_token_id == mex_token_id,
+            "Wrong pair address"
+        );
+        require!(
+            second_token_id == wegld_token_id || second_token_id == mex_token_id,
+            "Wrong pair address"
+        );
+
+        self.base_init(fees_contract_address);
+        self.energy_threshold().set_if_empty(energy_threshold);
+        self.mex_token_id().set_if_empty(mex_token_id);
+        self.wegld_token_id().set_if_empty(wegld_token_id);
+        self.normal_user_percentage()
+            .set_if_empty(normal_user_percentages);
+        self.premium_user_percentage()
+            .set_if_empty(premium_user_percentages);
+        self.simple_lock_address().set_if_empty(simple_lock_address);
+        self.mex_pair().set_if_empty(mex_pair_address);
+        self.lock_period().set_if_empty(lock_period);
+        self.total_fees().set_if_empty(UniquePayments::new());
     }
-}
 
-pub struct FarmClaimBoostedWrapper<
-    T: AllBaseTraits
-        + buy_mex::BuyMexModule
-        + claim_farm_boosted::ClaimFarmBoostedRewardsModule
-        + energy_query::EnergyQueryModule,
-> {
-    _phantom: PhantomData<T>,
-}
+    #[upgrade]
+    fn upgrade(&self) {}
 
-impl<T> SubscriberContract for FarmClaimBoostedWrapper<T>
-where
-    T: AllBaseTraits
-        + buy_mex::BuyMexModule
-        + claim_farm_boosted::ClaimFarmBoostedRewardsModule
-        + energy_query::EnergyQueryModule,
-{
-    type SubSc = T;
-    type AdditionalDataType = AdditionalFarmData;
+    #[only_owner]
+    #[endpoint(setLockPeriod)]
+    fn set_lock_period(&self, lock_period: Epoch) {
+        self.lock_period().set(lock_period);
+    }
 
-    fn perform_action(
-        sc: &Self::SubSc,
-        user_address: ManagedAddress<<Self::SubSc as ContractBase>::Api>,
-        service_index: usize,
-        service_info: &ServiceInfo<<Self::SubSc as ContractBase>::Api>,
-        _additional_data: &<Self as SubscriberContract>::AdditionalDataType,
-    ) -> Result<InterpretedResult<<Self::SubSc as ContractBase>::Api>, ()> {
-        if service_index == 1 {
-            let user_energy = sc.get_energy_amount(&user_address);
-            let energy_threshold = sc.energy_threshold().get();
-            if user_energy < energy_threshold {
-                return Result::Err(());
-            }
-        }
-
-        let _ = sc.claim_farm_boosted_rewards(service_info.sc_address.clone(), user_address);
-
-        // farm already sent rewards to user
-        Result::Ok(InterpretedResult {
-            user_rewards: ManagedVec::new(),
-        })
+    #[only_owner]
+    #[endpoint(setEnergyThreshold)]
+    fn set_energy_threshold(&self, energy_threshold: BigUint) {
+        self.energy_threshold().set(energy_threshold);
     }
 }

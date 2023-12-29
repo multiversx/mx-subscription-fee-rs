@@ -1,7 +1,7 @@
 [package]
 name = "farm-boosted-rewards-subscriber"
 version = "0.0.0"
-authors = [ "you",]
+authors = ["you"]
 edition = "2018"
 publish = false
 
@@ -9,42 +9,69 @@ publish = false
 path = "src/lib.rs"
 
 [dependencies.multiversx-sc]
-version = "=0.43.2"
+version = "=0.45.2"
 
 [dependencies.multiversx-sc-modules]
-version = "=0.43.2"
-
-[dependencies.auto-farm]
-git = "https://github.com/multiversx/mx-exchange-tools-sc"
-rev = "39e355f"
+version = "=0.45.2"
 
 [dependencies.subscription-fee]
 path = "../subscription-fee"
 
-[dependencies.subscriber]
-path = "../subscriber"
+[dependencies.common_subscriber]
+path = "../common/common_subscriber"
+
+[dependencies.common_structs]
+path = "../common/common_structs"
 
 [dependencies.energy-query]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "7f25a72"
+rev = "1fb9a1d"
 
 [dependencies.energy-factory]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "7f25a72"
+rev = "1fb9a1d"
 
 [dependencies.pair]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "7f25a72"
+rev = "1fb9a1d"
 
-[dev-dependencies.pausable]
+[dependencies.farm-with-locked-rewards]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "7f25a72"
+rev = "1fb9a1d"
 
-[dev-dependencies.multiversx-sc-scenario]
-version = "=0.43.2"
+[dependencies.config]
+git = "https://github.com/multiversx/mx-exchange-sc"
+rev = "1fb9a1d"
 
 [dev-dependencies]
 num-bigint = "0.4.2"
 num-traits = "0.2"
 hex = "0.4"
 hex-literal = "0.3.4"
+
+[dev-dependencies.farm-boosted-yields]
+git = "https://github.com/multiversx/mx-exchange-sc"
+rev = "1fb9a1d"
+
+[dev-dependencies.pausable]
+git = "https://github.com/multiversx/mx-exchange-sc"
+rev = "1fb9a1d"
+
+[dev-dependencies.farm_token]
+git = "https://github.com/multiversx/mx-exchange-sc"
+rev = "1fb9a1d"
+
+[dev-dependencies.sc_whitelist_module]
+git = "https://github.com/multiversx/mx-exchange-sc"
+rev = "1fb9a1d"
+
+[dev-dependencies.simple-lock]
+git = "https://github.com/multiversx/mx-exchange-sc"
+rev = "1fb9a1d"
+
+[dev-dependencies.locking_module]
+git = "https://github.com/multiversx/mx-exchange-sc"
+rev = "1fb9a1d"
+
+[dev-dependencies.multiversx-sc-scenario]
+version = "=0.45.2"
