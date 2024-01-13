@@ -25,17 +25,17 @@ pub trait CommonSubscriberModule {
         self.fees_contract_address().set(fees_contract_address);
     }
 
-    /// Arguments are MultiValue3 of opt_payment_token, payment_amount and subscription_epochs
+    /// Arguments are MultiValue4 of opt_payment_token, payment_amount, payment_in_stable and subscription_epochs
     #[only_owner]
     #[endpoint(registerService)]
     fn register_service(
         &self,
-        args: MultiValueEncoded<MultiValue3<Option<TokenIdentifier>, BigUint, Epoch>>,
+        args: MultiValueEncoded<MultiValue4<Option<TokenIdentifier>, BigUint, bool, Epoch>>,
     ) {
         let wegld_token_id = self.wegld_token_id().get();
 
         for arg in args.clone() {
-            let (token_id_opt, _, _) = arg.into_tuple();
+            let (token_id_opt, _, _, _) = arg.into_tuple();
             require!(token_id_opt.is_some(), "Invalid payment token");
             require!(
                 token_id_opt.unwrap() == wegld_token_id,

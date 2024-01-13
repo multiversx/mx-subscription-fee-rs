@@ -77,7 +77,13 @@ pub trait SubtractPaymentsModule:
         }
 
         let subtract_result = match service_info.opt_payment_token {
-            Some(token_id) => self.subtract_specific_token(user_id, token_id, service_info.amount),
+            Some(token_id) => {
+                if service_info.payment_in_stable {
+                    self.subtract_specific_token_in_stable(user_id, token_id, service_info.amount)
+                } else {
+                    self.subtract_specific_token(user_id, token_id, service_info.amount)
+                }
+            }
             None => self.subtract_any_token(user_id, service_info.amount),
         };
         if let ScResult::Ok(payment) = &subtract_result {
@@ -111,6 +117,29 @@ pub trait SubtractPaymentsModule:
         }
     }
 
+    fn subtract_specific_token_in_stable(
+        &self,
+        user_id: AddressId,
+        token_id: TokenIdentifier,
+        amount_in_stable_token: BigUint,
+    ) -> ScResult<EsdtTokenPayment, ()> {
+        let query_result = self.get_worth_of_price(token_id.clone(), amount_in_stable_token);
+        if query_result.is_err() {
+            return ScResult::Err(());
+        }
+
+        let tokens_to_pay = unsafe { query_result.unwrap_unchecked() };
+        let payment_to_deduct = EsdtTokenPayment::new(token_id, 0, tokens_to_pay);
+        let raw_result = self
+            .user_deposited_fees(user_id)
+            .update(|user_fees| user_fees.deduct_payment(&payment_to_deduct));
+
+        match raw_result {
+            Result::Ok(()) => ScResult::Ok(payment_to_deduct),
+            Result::Err(()) => ScResult::Err(()),
+        }
+    }
+
     fn subtract_any_token(
         &self,
         user_id: AddressId,
@@ -131,8 +160,6 @@ pub trait SubtractPaymentsModule:
             }
 
             let price = unsafe { query_result.unwrap_unchecked() };
-            // TODO
-            // Think about progressive deduction
             if price < amount_in_stable_token {
                 continue;
             }

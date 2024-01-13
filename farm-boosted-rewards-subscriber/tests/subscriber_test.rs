@@ -167,11 +167,13 @@ fn claim_boosted_rewards_for_user_test() {
             (
                 Some(WEGLD_TOKEN_ID.to_vec()),
                 1_000,
+                false,
                 WEEKLY_SUBSCRIPTION_EPOCHS,
             ),
             (
                 Some(WEGLD_TOKEN_ID.to_vec()),
                 500,
+                false,
                 WEEKLY_SUBSCRIPTION_EPOCHS,
             ),
         ])
@@ -330,11 +332,13 @@ fn claim_boosted_rewards_for_user_multiple_farms_test() {
             (
                 Some(WEGLD_TOKEN_ID.to_vec()),
                 1_000,
+                false,
                 WEEKLY_SUBSCRIPTION_EPOCHS,
             ),
             (
                 Some(WEGLD_TOKEN_ID.to_vec()),
                 500,
+                false,
                 WEEKLY_SUBSCRIPTION_EPOCHS,
             ),
         ])
@@ -509,11 +513,13 @@ fn claim_boosted_rewards_for_premium_user_test() {
             (
                 Some(WEGLD_TOKEN_ID.to_vec()),
                 1_000,
+                false,
                 WEEKLY_SUBSCRIPTION_EPOCHS,
             ),
             (
                 Some(WEGLD_TOKEN_ID.to_vec()),
                 500,
+                false,
                 WEEKLY_SUBSCRIPTION_EPOCHS,
             ),
         ])
@@ -664,11 +670,13 @@ fn mex_operation_with_claim_fees_test() {
             (
                 Some(WEGLD_TOKEN_ID.to_vec()),
                 1_000,
+                false,
                 WEEKLY_SUBSCRIPTION_EPOCHS,
             ),
             (
                 Some(WEGLD_TOKEN_ID.to_vec()),
                 500,
+                false,
                 WEEKLY_SUBSCRIPTION_EPOCHS,
             ),
         ])
@@ -748,5 +756,72 @@ fn mex_operation_with_claim_fees_test() {
         &subscriber_setup.owner_addr,
         WEGLD_TOKEN_ID,
         &rust_biguint!(expected_fee_amount),
+    );
+}
+
+#[test]
+fn subtract_worth_of_stable_payment_test() {
+    let (
+        b_mock_rc,
+        _mex_pair_setup,
+        _stable_pair_setup,
+        _farm_setup,
+        mut subscription_setup,
+        mut subscriber_setup,
+    ) = init_all(
+        pair::contract_obj,
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+        subscription_fee::contract_obj,
+        farm_boosted_rewards_subscriber::contract_obj,
+    );
+
+    let user = b_mock_rc
+        .borrow_mut()
+        .create_user_account(&rust_biguint!(0));
+    let user_id = 1;
+    b_mock_rc.borrow_mut().set_block_epoch(2);
+
+    subscriber_setup
+        .call_register_service(vec![(
+            Some(WEGLD_TOKEN_ID.to_vec()),
+            500,
+            true,
+            WEEKLY_SUBSCRIPTION_EPOCHS,
+        )])
+        .assert_ok();
+
+    subscription_setup
+        .call_approve_service(subscriber_setup.sub_wrapper.address_ref())
+        .assert_ok();
+
+    b_mock_rc
+        .borrow_mut()
+        .set_esdt_balance(&user, WEGLD_TOKEN_ID, &rust_biguint!(1_000_000));
+
+    subscription_setup
+        .call_deposit(&user, WEGLD_TOKEN_ID, 1_000_000)
+        .assert_ok();
+
+    let normal_service = 0;
+    subscription_setup
+        .call_subscribe(&user, vec![(1, normal_service)])
+        .assert_ok();
+
+    b_mock_rc.borrow().check_esdt_balance(
+        subscriber_setup.sub_wrapper.address_ref(),
+        WEGLD_TOKEN_ID,
+        &rust_biguint!(0),
+    );
+
+    // Pool ratio is 1:2, so for a service payment of 500 USDC worth of WEGLD, the amount should be 250
+    subscriber_setup
+        .call_subtract_payment(0, vec![user_id])
+        .assert_ok();
+
+    b_mock_rc.borrow().check_esdt_balance(
+        subscriber_setup.sub_wrapper.address_ref(),
+        WEGLD_TOKEN_ID,
+        &rust_biguint!(250),
     );
 }
