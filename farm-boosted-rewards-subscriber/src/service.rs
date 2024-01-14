@@ -1,9 +1,12 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
+use common_structs::UniquePayments;
+use multiversx_sc_modules::only_admin;
+
 use crate::{
     events,
-    subscriber_config::{self, MexActionsPercentages, SubscriptionUserType},
+    subscriber_config::{self, MexActionsPercentages, SubscriptionUserType, EPOCHS_IN_WEEK},
 };
 
 #[derive(ManagedVecItem, TypeAbi, TopEncode, TopDecode, PartialEq)]
@@ -27,14 +30,15 @@ pub trait ServiceModule:
     + common_subscriber::CommonSubscriberModule
     + energy_query::EnergyQueryModule
     + events::EventsModule
+    + only_admin::OnlyAdminModule
 {
-    #[only_owner]
     #[endpoint(subtractPayment)]
     fn subtract_payment_endpoint(
         &self,
         service_index: usize,
         user_ids: MultiValueEncoded<AddressId>,
     ) {
+        self.require_caller_is_admin();
         require!(
             service_index == SubscriptionUserType::Normal as usize
                 || service_index == SubscriptionUserType::Premium as usize,
@@ -68,17 +72,50 @@ pub trait ServiceModule:
         self.emit_subtract_payment_event(service_index, processed_user_ids);
     }
 
-    #[only_owner]
     #[endpoint(claimFees)]
     fn claim_fees(&self) -> ManagedVec<EsdtTokenPayment> {
-        let caller = self.blockchain().get_caller();
+        self.require_caller_is_admin();
+        let current_epoch = self.blockchain().get_block_epoch();
+        let last_fee_withdraw_epoch = self.last_fee_withdraw_epoch().get();
+        let fee_address_mapper = self.fees_claim_address();
+        require!(
+            last_fee_withdraw_epoch + EPOCHS_IN_WEEK <= current_epoch,
+            "Cannot claim yet"
+        );
+        require!(
+            !fee_address_mapper.is_empty(),
+            "The fee address is not defined"
+        );
+        let fee_address = fee_address_mapper.get();
+
+        let mut remaining_fees = ManagedVec::new();
+        let mut computed_fees = ManagedVec::new();
         let total_fees = self.total_fees().take().into_payments();
-        self.send().direct_multi(&caller, &total_fees);
+
+        for mut fee in total_fees.into_iter() {
+            let max_fee_withdraw_per_week =
+                self.max_fee_withdraw_per_week(&fee.token_identifier).get();
+            if fee.amount <= max_fee_withdraw_per_week || max_fee_withdraw_per_week == 0 {
+                computed_fees.push(fee);
+            } else {
+                fee.amount -= &max_fee_withdraw_per_week;
+                computed_fees.push(EsdtTokenPayment::new(
+                    fee.token_identifier.clone(),
+                    fee.token_nonce,
+                    max_fee_withdraw_per_week,
+                ));
+                remaining_fees.push(fee);
+            }
+        }
+
+        self.send().direct_multi(&fee_address, &computed_fees);
+        self.total_fees()
+            .set(UniquePayments::new_from_payments(remaining_fees));
+        self.last_fee_withdraw_epoch().set(current_epoch);
 
         total_fees
     }
 
-    #[only_owner]
     #[endpoint(performMexOperations)]
     fn perform_mex_operations_endpoint(
         &self,
@@ -86,6 +123,7 @@ pub trait ServiceModule:
         total_min_amount_out: BigUint,
         user_ids: MultiValueEncoded<AddressId>,
     ) {
+        self.require_caller_is_admin();
         let actions_percentage = if service_index == SubscriptionUserType::Normal as usize {
             self.normal_user_percentage().get()
         } else if service_index == SubscriptionUserType::Premium as usize {

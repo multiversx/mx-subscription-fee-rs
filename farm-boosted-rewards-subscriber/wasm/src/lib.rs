@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           21
+// Endpoints:                           30
 // Async Callback (empty):               1
-// Total number of exported functions:  23
+// Total number of exported functions:  32
 
 #![no_std]
 
@@ -25,11 +25,16 @@ multiversx_sc_wasm_adapter::endpoints! {
         upgrade => upgrade
         setLockPeriod => set_lock_period
         setEnergyThreshold => set_energy_threshold
+        setFeesClaimAddress => set_fees_claim_address
+        addTokenMaxFeeWithdrawPerWeek => add_token_max_fee_withdraw_per_week
         getSimpleLockAddress => simple_lock_address
         getLockPeriod => lock_period
         getNormalUserPercentage => normal_user_percentage
         getPremiumUserPercentage => premium_user_percentage
         getTotalFees => total_fees
+        getMaxFeeWithdrawPerWeek => max_fee_withdraw_per_week
+        getLastFeeWithdrawEpoch => last_fee_withdraw_epoch
+        getFeesClaimAddress => fees_claim_address
         getEnergyThreshold => energy_threshold
         addFarm => add_farm
         removeFarm => remove_farm
@@ -43,6 +48,10 @@ multiversx_sc_wasm_adapter::endpoints! {
         getUserFees => user_fees
         setEnergyFactoryAddress => set_energy_factory_address
         getEnergyFactoryAddress => energy_factory_address
+        isAdmin => is_admin
+        addAdmin => add_admin
+        removeAdmin => remove_admin
+        getAdmins => admins
     )
 }
 
