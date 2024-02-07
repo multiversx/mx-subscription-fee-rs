@@ -4,6 +4,7 @@ multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 use common_structs::UniquePayments;
+use multiversx_sc_modules::only_admin;
 use subscriber_config::MexActionsPercentages;
 use subscription_fee::subtract_payments::Epoch;
 
@@ -20,6 +21,7 @@ pub trait SubscriberContractMain:
     + common_subscriber::CommonSubscriberModule
     + energy_query::EnergyQueryModule
     + events::EventsModule
+    + only_admin::OnlyAdminModule
 {
     /// Percentages must add up to 10,000 each, where 10,000 = 100%
     /// Lock period is number of epochs the tokens should be locked for
@@ -35,6 +37,7 @@ pub trait SubscriberContractMain:
         simple_lock_address: ManagedAddress,
         mex_pair_address: ManagedAddress,
         lock_period: Epoch,
+        fees_claim_address: ManagedAddress,
     ) {
         require!(mex_token_id.is_valid_esdt_identifier(), "Invalid token ID");
         require!(
@@ -77,6 +80,8 @@ pub trait SubscriberContractMain:
         self.simple_lock_address().set_if_empty(simple_lock_address);
         self.mex_pair().set_if_empty(mex_pair_address);
         self.lock_period().set_if_empty(lock_period);
+        self.fees_claim_address().set_if_empty(fees_claim_address);
+        self.add_admin(self.blockchain().get_caller());
         self.total_fees().set_if_empty(UniquePayments::new());
     }
 

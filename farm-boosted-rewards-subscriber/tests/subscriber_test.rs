@@ -750,6 +750,7 @@ fn mex_operation_with_claim_fees_test() {
     );
 
     let expected_fee_amount = 160;
+    b_mock_rc.borrow_mut().set_block_epoch(7);
     subscriber_setup.call_claim_fees(1).assert_ok();
 
     b_mock_rc.borrow().check_esdt_balance(

@@ -82,6 +82,7 @@ where
                     managed_address!(energy_factory_address),
                     managed_address!(mex_pair_address),
                     LOCKING_PERIOD,
+                    managed_address!(owner_addr),
                 );
 
                 sc.set_energy_factory_address(managed_address!(energy_factory_address));

@@ -7,6 +7,7 @@ use subscription_fee::subtract_payments::Epoch;
 
 pub type Percentage = u32;
 pub const TOTAL_PERCENTAGE: Percentage = 10_000;
+pub const EPOCHS_IN_WEEK: u64 = 7;
 
 #[derive(TypeAbi, TopEncode, TopDecode, PartialEq)]
 pub enum SubscriptionUserType {
@@ -59,6 +60,28 @@ impl<M: ManagedTypeApi> MexActionsValue<M> {
 
 #[multiversx_sc::module]
 pub trait SubscriberConfigModule {
+    #[only_owner]
+    #[endpoint(setFeesClaimAddress)]
+    fn set_fees_claim_address(&self, fees_claim_address: ManagedAddress) {
+        self.fees_claim_address().set(fees_claim_address)
+    }
+
+    #[only_owner]
+    #[endpoint(addTokenMaxFeeWithdrawPerWeek)]
+    fn add_token_max_fee_withdraw_per_week(
+        &self,
+        token_amount_pairs: MultiValueEncoded<MultiValue2<TokenIdentifier, BigUint>>,
+    ) {
+        for token_amount in token_amount_pairs.into_iter() {
+            let (token_id, amount) = token_amount.into_tuple();
+            require!(
+                token_id.is_valid_esdt_identifier(),
+                "Invalid token identifier"
+            );
+            self.max_fee_withdraw_per_week(&token_id).set(amount);
+        }
+    }
+
     fn call_swap_to_mex(
         &self,
         pair_address: ManagedAddress,
@@ -143,6 +166,18 @@ pub trait SubscriberConfigModule {
     #[view(getTotalFees)]
     #[storage_mapper("totalFees")]
     fn total_fees(&self) -> SingleValueMapper<UniquePayments<Self::Api>>;
+
+    #[view(getMaxFeeWithdrawPerWeek)]
+    #[storage_mapper("maxFeeWithdrawPerWeek")]
+    fn max_fee_withdraw_per_week(&self, token_id: &TokenIdentifier) -> SingleValueMapper<BigUint>;
+
+    #[view(getLastFeeWithdrawEpoch)]
+    #[storage_mapper("lastFeeWithdrawEpoch")]
+    fn last_fee_withdraw_epoch(&self) -> SingleValueMapper<Epoch>;
+
+    #[view(getFeesClaimAddress)]
+    #[storage_mapper("feesClaimAddress")]
+    fn fees_claim_address(&self) -> SingleValueMapper<ManagedAddress>;
 
     #[view(getEnergyThreshold)]
     #[storage_mapper("energyThreshold")]

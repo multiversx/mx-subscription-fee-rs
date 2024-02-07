@@ -1,6 +1,8 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
+use multiversx_sc_modules::only_admin;
+
 use crate::events;
 use crate::events::ClaimRewardsOperation;
 use crate::service;
@@ -14,6 +16,7 @@ pub trait ClaimFarmBoostedRewardsModule:
     + common_subscriber::CommonSubscriberModule
     + energy_query::EnergyQueryModule
     + events::EventsModule
+    + only_admin::OnlyAdminModule
 {
     #[only_owner]
     #[endpoint(addFarm)]
