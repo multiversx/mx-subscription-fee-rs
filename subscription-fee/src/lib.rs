@@ -52,4 +52,7 @@ pub trait SubscriptionFee:
             .set_if_empty(min_stable_token_deposit_value);
         self.add_accepted_fees_tokens(accepted_tokens);
     }
+
+    #[upgrade]
+    fn upgrade(&self) {}
 }
