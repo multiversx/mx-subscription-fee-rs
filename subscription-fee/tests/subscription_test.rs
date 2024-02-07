@@ -85,6 +85,7 @@ fn register_service_test() {
             vec![(
                 Some(FIRST_TOKEN_ID.to_vec()),
                 1_000,
+                false,
                 DAILY_SUBSCRIPTION_EPOCHS,
             )],
         )
@@ -104,6 +105,7 @@ fn approve_test() {
             vec![(
                 Some(FIRST_TOKEN_ID.to_vec()),
                 1_000,
+                false,
                 DAILY_SUBSCRIPTION_EPOCHS,
             )],
         )
@@ -125,6 +127,7 @@ fn unregister_service_test() {
             vec![(
                 Some(FIRST_TOKEN_ID.to_vec()),
                 1_000,
+                false,
                 DAILY_SUBSCRIPTION_EPOCHS,
             )],
         )
@@ -147,6 +150,7 @@ fn subscribe_before_deposit_test() {
             vec![(
                 Some(FIRST_TOKEN_ID.to_vec()),
                 1_000,
+                false,
                 DAILY_SUBSCRIPTION_EPOCHS,
             )],
         )
@@ -171,6 +175,7 @@ fn subscribe_before_approve_test() {
             vec![(
                 Some(FIRST_TOKEN_ID.to_vec()),
                 1_000,
+                false,
                 DAILY_SUBSCRIPTION_EPOCHS,
             )],
         )
@@ -203,6 +208,7 @@ fn subscribe_ok_test() {
             vec![(
                 Some(FIRST_TOKEN_ID.to_vec()),
                 1_000,
+                false,
                 DAILY_SUBSCRIPTION_EPOCHS,
             )],
         )
@@ -235,6 +241,7 @@ fn subtract_ok_test() {
             vec![(
                 Some(FIRST_TOKEN_ID.to_vec()),
                 1_000,
+                false,
                 DAILY_SUBSCRIPTION_EPOCHS,
             )],
         )
@@ -277,6 +284,7 @@ fn try_subtract_twice_same_day() {
             vec![(
                 Some(FIRST_TOKEN_ID.to_vec()),
                 1_000,
+                false,
                 DAILY_SUBSCRIPTION_EPOCHS,
             )],
         )
@@ -325,7 +333,7 @@ fn any_token_subtract_fee_test() {
     sub_sc
         .call_register_service(
             &rand_service,
-            vec![(None, 1_000, DAILY_SUBSCRIPTION_EPOCHS)],
+            vec![(None, 1_000, false, DAILY_SUBSCRIPTION_EPOCHS)],
         )
         .assert_ok();
 
@@ -367,6 +375,7 @@ fn withdraw_tokens_test() {
             vec![(
                 Some(FIRST_TOKEN_ID.to_vec()),
                 1_000,
+                false,
                 DAILY_SUBSCRIPTION_EPOCHS,
             )],
         )
@@ -420,11 +429,13 @@ fn try_substract_from_unsubscribed_user_test() {
                 (
                     Some(FIRST_TOKEN_ID.to_vec()),
                     1_000,
+                    false,
                     DAILY_SUBSCRIPTION_EPOCHS,
                 ),
                 (
                     Some(FIRST_TOKEN_ID.to_vec()),
                     500,
+                    false,
                     DAILY_SUBSCRIPTION_EPOCHS,
                 ),
             ],

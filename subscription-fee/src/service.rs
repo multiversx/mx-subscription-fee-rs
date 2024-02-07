@@ -12,6 +12,7 @@ pub const MAX_SERVICES_LENGTH: usize = 20;
 pub struct ServiceInfo<M: ManagedTypeApi> {
     pub opt_payment_token: Option<TokenIdentifier<M>>,
     pub amount: BigUint<M>,
+    pub payment_in_stable: bool,
     pub subscription_epochs: Epoch,
 }
 
@@ -19,11 +20,11 @@ pub struct ServiceInfo<M: ManagedTypeApi> {
 pub trait ServiceModule:
     fees::FeesModule + pair_actions::PairActionsModule + common_storage::CommonStorageModule
 {
-    /// Arguments are MultiValue3 of opt_payment_token, payment_amount and subscription_epochs
+    /// Arguments are MultiValue4 of opt_payment_token, payment_amount, payment_in_stable and subscription_epochs
     #[endpoint(registerService)]
     fn register_service(
         &self,
-        args: MultiValueEncoded<MultiValue3<Option<TokenIdentifier>, BigUint, Epoch>>,
+        args: MultiValueEncoded<MultiValue4<Option<TokenIdentifier>, BigUint, bool, Epoch>>,
     ) {
         require!(!args.is_empty(), "No arguments provided");
 
@@ -33,7 +34,8 @@ pub trait ServiceModule:
 
         let mut services = ManagedVec::<Self::Api, _>::new();
         for arg in args {
-            let (opt_payment_token, amount, subscription_epochs) = arg.into_tuple();
+            let (opt_payment_token, amount, payment_in_stable, subscription_epochs) =
+                arg.into_tuple();
 
             require!(subscription_epochs > 0, "Subscription epochs must be > 0");
             if let Some(token_id) = &opt_payment_token {
@@ -46,6 +48,7 @@ pub trait ServiceModule:
             services.push(ServiceInfo {
                 opt_payment_token,
                 amount,
+                payment_in_stable,
                 subscription_epochs,
             });
         }
@@ -64,7 +67,7 @@ pub trait ServiceModule:
     #[endpoint(addExtraServices)]
     fn add_extra_services(
         &self,
-        args: MultiValueEncoded<MultiValue3<Option<TokenIdentifier>, BigUint, Epoch>>,
+        args: MultiValueEncoded<MultiValue4<Option<TokenIdentifier>, BigUint, bool, Epoch>>,
     ) {
         require!(!args.is_empty(), "No arguments provided");
 
@@ -74,7 +77,8 @@ pub trait ServiceModule:
 
         let mut services = ManagedVec::<Self::Api, _>::new();
         for arg in args {
-            let (opt_payment_token, amount, subscription_epochs) = arg.into_tuple();
+            let (opt_payment_token, amount, payment_in_stable, subscription_epochs) =
+                arg.into_tuple();
 
             require!(subscription_epochs > 0, "Subscription epochs must be > 0");
             if let Some(token_id) = &opt_payment_token {
@@ -87,6 +91,7 @@ pub trait ServiceModule:
             services.push(ServiceInfo {
                 opt_payment_token,
                 amount,
+                payment_in_stable,
                 subscription_epochs,
             });
         }
