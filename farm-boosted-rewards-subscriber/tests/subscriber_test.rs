@@ -2,10 +2,11 @@
 
 use std::{cell::RefCell, rc::Rc};
 
+use farm_boosted_rewards_subscriber::subscriber_config::SubscriberConfigModule;
 use farm_setup::FarmSetup;
 use multiversx_sc_scenario::{
-    managed_address, managed_token_id, rust_biguint, testing_framework::BlockchainStateWrapper,
-    DebugApi,
+    managed_address, managed_biguint, managed_token_id, rust_biguint,
+    testing_framework::BlockchainStateWrapper, DebugApi,
 };
 use pair_setup::PairSetup;
 use simple_lock::locked_token::LockedTokenAttributes;
@@ -26,6 +27,9 @@ static REWARD_TOKEN_ID: &[u8] = b"MEX-123456";
 static LOCKED_TOKEN_ID: &[u8] = b"XMEX-123456";
 const DEFAULT_BOOSTED_YIELDS_PERCENTAGE: u64 = 2_500; // 25%
 pub const WEEKLY_SUBSCRIPTION_EPOCHS: u64 = 7;
+
+pub const STANDARD_SERVICE: usize = 0;
+pub const PREMIUM_SERVICE: usize = 1;
 
 #[allow(clippy::type_complexity)]
 fn init_all<
@@ -191,9 +195,8 @@ fn claim_boosted_rewards_for_user_test() {
         .call_deposit(&user, WEGLD_TOKEN_ID, 1_000_000)
         .assert_ok();
 
-    let normal_service = 0;
     subscription_setup
-        .call_subscribe(&user, vec![(1, normal_service)])
+        .call_subscribe(&user, vec![(1, STANDARD_SERVICE), (1, PREMIUM_SERVICE)])
         .assert_ok();
 
     // Generate farm rewards
@@ -220,18 +223,19 @@ fn claim_boosted_rewards_for_user_test() {
             None,
         );
 
+    // Set user energy below the threshold
     b_mock_rc.borrow_mut().set_block_epoch(10);
-    farm_setup.set_user_energy(&user, 1_000, 10, 1);
+    farm_setup.set_user_energy(&user, 900, 10, 1);
 
     farm_setup
         .call_allow_external_claim_boosted_rewards(&user, true)
         .assert_ok();
 
     subscriber_setup
-        .call_subtract_payment(0, vec![user_id])
+        .call_subtract_payment(vec![user_id])
         .assert_ok();
     subscriber_setup
-        .call_perform_claim_boosted(0, user_id, farm_list.clone())
+        .call_perform_claim_boosted(user_id, farm_list.clone())
         .assert_ok();
 
     // Check that the subscriber claimed the boosted amount for the user
@@ -254,7 +258,7 @@ fn claim_boosted_rewards_for_user_test() {
 
     // try perform operation again, same epoch
     subscriber_setup
-        .call_perform_claim_boosted(0, user_id, farm_list.clone())
+        .call_perform_claim_boosted(user_id, farm_list.clone())
         .assert_ok();
 
     // user has the same balance
@@ -278,7 +282,7 @@ fn claim_boosted_rewards_for_user_test() {
     b_mock_rc.borrow_mut().set_block_epoch(11);
 
     subscriber_setup
-        .call_perform_claim_boosted(0, user_id, farm_list)
+        .call_perform_claim_boosted(user_id, farm_list)
         .assert_ok();
 
     // still same balance, subtraction is done manually once per month
@@ -356,9 +360,8 @@ fn claim_boosted_rewards_for_user_multiple_farms_test() {
         .call_deposit(&user, WEGLD_TOKEN_ID, 1_000_000)
         .assert_ok();
 
-    let normal_service = 0;
     subscription_setup
-        .call_subscribe(&user, vec![(1, normal_service)])
+        .call_subscribe(&user, vec![(1, STANDARD_SERVICE), (1, PREMIUM_SERVICE)])
         .assert_ok();
 
     // Generate farm rewards
@@ -397,9 +400,10 @@ fn claim_boosted_rewards_for_user_multiple_farms_test() {
             None,
         );
 
+    // Set users energy below threshold
     b_mock_rc.borrow_mut().set_block_epoch(10);
-    farm_setup.set_user_energy(&user, 1_000, 10, 1);
-    farm_setup2.set_user_energy(&user, 1_000, 10, 1);
+    farm_setup.set_user_energy(&user, 900, 10, 1);
+    farm_setup2.set_user_energy(&user, 900, 10, 1);
 
     farm_setup
         .call_allow_external_claim_boosted_rewards(&user, true)
@@ -410,10 +414,10 @@ fn claim_boosted_rewards_for_user_multiple_farms_test() {
 
     // Call subscriber action
     subscriber_setup
-        .call_subtract_payment(0, vec![user_id])
+        .call_subtract_payment(vec![user_id])
         .assert_ok();
     subscriber_setup
-        .call_perform_claim_boosted(0, user_id, farm_list.clone())
+        .call_perform_claim_boosted(user_id, farm_list.clone())
         .assert_ok();
 
     // Check that the subscriber claimed the boosted amount for the user, for both farms
@@ -434,6 +438,7 @@ fn claim_boosted_rewards_for_user_multiple_farms_test() {
             None,
         );
 
+    // TODO - Check
     b_mock_rc.borrow().check_esdt_balance(
         subscriber_setup.sub_wrapper.address_ref(),
         WEGLD_TOKEN_ID,
@@ -442,7 +447,7 @@ fn claim_boosted_rewards_for_user_multiple_farms_test() {
 
     // try perform operation again, same epoch
     subscriber_setup
-        .call_perform_claim_boosted(0, user_id, farm_list.clone())
+        .call_perform_claim_boosted(user_id, farm_list.clone())
         .assert_ok();
 
     // user has the same balance
@@ -471,7 +476,7 @@ fn claim_boosted_rewards_for_user_multiple_farms_test() {
     b_mock_rc.borrow_mut().set_block_epoch(11);
 
     subscriber_setup
-        .call_perform_claim_boosted(0, user_id, farm_list)
+        .call_perform_claim_boosted(user_id, farm_list)
         .assert_ok();
 
     // still same balance, subtraction is done manually once per month
@@ -538,9 +543,8 @@ fn claim_boosted_rewards_for_premium_user_test() {
         .assert_ok();
 
     // Subscribe to premium service
-    let premium_service = 1;
     subscription_setup
-        .call_subscribe(&user, vec![(1, premium_service)])
+        .call_subscribe(&user, vec![(1, STANDARD_SERVICE), (1, PREMIUM_SERVICE)])
         .assert_ok();
 
     // Generate farm rewards
@@ -575,10 +579,10 @@ fn claim_boosted_rewards_for_premium_user_test() {
         .assert_ok();
 
     subscriber_setup
-        .call_subtract_payment(premium_service, vec![user_id])
+        .call_subtract_payment(vec![user_id])
         .assert_ok();
     subscriber_setup
-        .call_perform_claim_boosted(premium_service, user_id, farm_list.clone())
+        .call_perform_claim_boosted(user_id, farm_list.clone())
         .assert_ok();
 
     // Check that the subscriber claimed the boosted amount for the user
@@ -602,7 +606,7 @@ fn claim_boosted_rewards_for_premium_user_test() {
 
     // try perform operation again, same epoch
     subscriber_setup
-        .call_perform_claim_boosted(premium_service, user_id, farm_list.clone())
+        .call_perform_claim_boosted(user_id, farm_list.clone())
         .assert_ok();
 
     // user has the same balance
@@ -626,7 +630,7 @@ fn claim_boosted_rewards_for_premium_user_test() {
     b_mock_rc.borrow_mut().set_block_epoch(11);
 
     subscriber_setup
-        .call_perform_claim_boosted(premium_service, user_id, farm_list)
+        .call_perform_claim_boosted(user_id, farm_list)
         .assert_ok();
 
     // still same balance, subtraction is done manually once per month
@@ -705,20 +709,19 @@ fn mex_operation_with_claim_fees_test() {
         .assert_ok();
 
     // Subscribe to standard service
-    let standard_service = 0;
     subscription_setup
-        .call_subscribe(&first_user, vec![(1, standard_service)])
+        .call_subscribe(&first_user, vec![(1, STANDARD_SERVICE)])
         .assert_ok();
     subscription_setup
-        .call_subscribe(&second_user, vec![(1, standard_service)])
+        .call_subscribe(&second_user, vec![(1, STANDARD_SERVICE)])
         .assert_ok();
 
     subscriber_setup
-        .call_subtract_payment(standard_service, vec![first_user_id, second_user_id])
+        .call_subtract_payment(vec![first_user_id, second_user_id])
         .assert_ok();
 
     subscriber_setup
-        .call_perform_mex_operation(standard_service, vec![first_user_id, second_user_id])
+        .call_perform_mex_operation(STANDARD_SERVICE, vec![first_user_id, second_user_id])
         .assert_ok();
 
     // Expected locked tokens balance: 1799
@@ -749,14 +752,35 @@ fn mex_operation_with_claim_fees_test() {
         &rust_biguint!(0),
     );
 
-    let expected_fee_amount = 160;
+    let total_fee_limit_per_week = 100;
+    subscriber_setup
+        .call_add_max_fee_withdraw_per_week(total_fee_limit_per_week)
+        .assert_ok();
+    let total_expected_fee_amount = 160;
     b_mock_rc.borrow_mut().set_block_epoch(7);
-    subscriber_setup.call_claim_fees(1).assert_ok();
+    subscriber_setup
+        .call_claim_fees(total_fee_limit_per_week)
+        .assert_ok();
+    b_mock_rc.borrow_mut().set_block_epoch(15);
+    subscriber_setup
+        .call_claim_fees(total_expected_fee_amount - total_fee_limit_per_week)
+        .assert_ok();
 
     b_mock_rc.borrow().check_esdt_balance(
         &subscriber_setup.owner_addr,
         WEGLD_TOKEN_ID,
-        &rust_biguint!(expected_fee_amount),
+        &rust_biguint!(total_expected_fee_amount),
+    );
+
+    // Check that the fees storage is empty
+    let _ = b_mock_rc.borrow_mut().execute_tx(
+        &subscriber_setup.owner_addr,
+        &subscriber_setup.sub_wrapper,
+        &rust_biguint!(0),
+        |sc| {
+            let total_fees = sc.total_fees().get();
+            assert_eq!(total_fees, managed_biguint!(0));
+        },
     );
 }
 
@@ -804,9 +828,8 @@ fn subtract_worth_of_stable_payment_test() {
         .call_deposit(&user, WEGLD_TOKEN_ID, 1_000_000)
         .assert_ok();
 
-    let normal_service = 0;
     subscription_setup
-        .call_subscribe(&user, vec![(1, normal_service)])
+        .call_subscribe(&user, vec![(1, STANDARD_SERVICE)])
         .assert_ok();
 
     b_mock_rc.borrow().check_esdt_balance(
@@ -817,7 +840,7 @@ fn subtract_worth_of_stable_payment_test() {
 
     // Pool ratio is 1:2, so for a service payment of 500 USDC worth of WEGLD, the amount should be 250
     subscriber_setup
-        .call_subtract_payment(0, vec![user_id])
+        .call_subtract_payment(vec![user_id])
         .assert_ok();
 
     b_mock_rc.borrow().check_esdt_balance(

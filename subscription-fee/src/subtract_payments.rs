@@ -3,8 +3,6 @@ multiversx_sc::derive_imports!();
 
 use core::hint::unreachable_unchecked;
 
-use common_structs::UniquePayments;
-
 pub type Epoch = u64;
 
 #[must_use]
@@ -123,7 +121,7 @@ pub trait SubtractPaymentsModule:
         token_id: TokenIdentifier,
         amount_in_stable_token: BigUint,
     ) -> ScResult<EsdtTokenPayment, ()> {
-        let query_result = self.get_worth_of_price(token_id.clone(), amount_in_stable_token);
+        let query_result = self.get_worth_of_price(&token_id, amount_in_stable_token);
         if query_result.is_err() {
             return ScResult::Err(());
         }
@@ -150,31 +148,17 @@ pub trait SubtractPaymentsModule:
             return ScResult::Err(());
         }
 
-        let mut user_tokens = tokens_mapper.get().into_payments();
-        for i in 0..user_tokens.len() {
-            let mut payment = user_tokens.get(i);
-            let query_result =
-                self.get_price(payment.token_identifier.clone(), payment.amount.clone());
-            if query_result.is_err() {
-                continue;
+        let user_tokens = tokens_mapper.get().into_payments();
+        for user_token in user_tokens.iter() {
+            let subtract_result = self.subtract_specific_token_in_stable(
+                user_id,
+                user_token.token_identifier,
+                amount_in_stable_token.clone(),
+            );
+
+            if !subtract_result.is_err() {
+                return subtract_result;
             }
-
-            let price = unsafe { query_result.unwrap_unchecked() };
-            if price < amount_in_stable_token {
-                continue;
-            }
-
-            let tokens_to_pay = &payment.amount * &amount_in_stable_token / price;
-
-            payment.amount -= &tokens_to_pay;
-            let _ = user_tokens.set(i, &payment);
-            tokens_mapper.set(UniquePayments::new_from_unique_payments(user_tokens));
-
-            return ScResult::Ok(EsdtTokenPayment::new(
-                payment.token_identifier,
-                0,
-                tokens_to_pay,
-            ));
         }
 
         ScResult::Err(())

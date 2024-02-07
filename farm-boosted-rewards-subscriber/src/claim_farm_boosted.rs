@@ -7,7 +7,6 @@ use crate::events;
 use crate::events::ClaimRewardsOperation;
 use crate::service;
 use crate::subscriber_config;
-use crate::subscriber_config::SubscriptionUserType;
 
 #[multiversx_sc::module]
 pub trait ClaimFarmBoostedRewardsModule:
@@ -18,9 +17,9 @@ pub trait ClaimFarmBoostedRewardsModule:
     + events::EventsModule
     + only_admin::OnlyAdminModule
 {
-    #[only_owner]
     #[endpoint(addFarm)]
     fn add_farm(&self, farm_address: ManagedAddress) -> AddressId {
+        self.require_caller_is_admin();
         require!(
             self.blockchain().is_smart_contract(&farm_address),
             "Invalid farm address"
@@ -29,24 +28,17 @@ pub trait ClaimFarmBoostedRewardsModule:
         self.farm_id().insert_new(&farm_address)
     }
 
-    #[only_owner]
     #[endpoint(removeFarm)]
     fn remove_farm(&self, farm_address: ManagedAddress) -> AddressId {
+        self.require_caller_is_admin();
         self.farm_id().remove_by_address(&farm_address)
     }
 
     #[endpoint(performClaimRewardsOperations)]
     fn perform_claim_rewards_operations_endpoint(
         &self,
-        service_index: usize,
         user_farms_pairs_to_claim: MultiValueEncoded<MultiValue2<AddressId, ManagedVec<AddressId>>>,
     ) {
-        require!(
-            service_index == SubscriptionUserType::Normal as usize
-                || service_index == SubscriptionUserType::Premium as usize,
-            "Invalid service index"
-        );
-
         let fees_contract_address = self.fees_contract_address().get();
 
         let mut claim_reward_operations = ManagedVec::new();

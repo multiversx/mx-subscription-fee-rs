@@ -64,10 +64,9 @@ where
                     managed_token_id!(USDC_TOKEN_ID),
                     managed_token_id!(WEGLD_TOKEN_ID),
                     managed_address!(pair_address),
+                    managed_biguint!(MIN_USER_DEPOSIT_VALUE),
                     args,
                 );
-
-                sc.set_min_deposit_value(managed_biguint!(MIN_USER_DEPOSIT_VALUE));
             })
             .assert_ok();
 

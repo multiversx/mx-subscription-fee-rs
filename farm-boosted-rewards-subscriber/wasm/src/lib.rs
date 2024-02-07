@@ -26,7 +26,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         setLockPeriod => set_lock_period
         setEnergyThreshold => set_energy_threshold
         setFeesClaimAddress => set_fees_claim_address
-        addTokenMaxFeeWithdrawPerWeek => add_token_max_fee_withdraw_per_week
+        addMaxFeeWithdrawPerWeek => add_max_fee_withdraw_per_week
         getSimpleLockAddress => simple_lock_address
         getLockPeriod => lock_period
         getNormalUserPercentage => normal_user_percentage

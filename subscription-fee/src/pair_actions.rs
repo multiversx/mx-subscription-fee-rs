@@ -37,64 +37,13 @@ pub trait PairActionsModule: crate::common_storage::CommonStorageModule {
         self.pair_address_for_token(&token_id).clear();
     }
 
-    fn get_price(&self, token_id: TokenIdentifier, amount: BigUint) -> Result<BigUint, ()> {
-        let mapper = self.pair_address_for_token(&token_id);
-        if mapper.is_empty() {
-            return Result::Err(());
-        }
-
-        let pair_address = mapper.get();
-        let stable_token_id = self.stable_token_id().get();
-        let wegld_token_id = self.wegld_token_id().get();
-        let price_query_address = self.price_query_address().get();
-        let price: EsdtTokenPayment = if token_id == stable_token_id {
-            EsdtTokenPayment::new(token_id, 0, amount)
-        } else {
-            let mut query_payment: EsdtTokenPayment = self
-                .pair_proxy(price_query_address.clone())
-                .get_safe_price_by_default_offset(
-                    pair_address,
-                    EsdtTokenPayment::new(token_id, 0, amount),
-                )
-                .execute_on_dest_context();
-
-            if query_payment.token_identifier == wegld_token_id {
-                let stable_pair_data_mapper =
-                    self.pair_address_for_token(&query_payment.token_identifier);
-                if stable_pair_data_mapper.is_empty() {
-                    return Result::Err(());
-                }
-                let stable_pair_address = stable_pair_data_mapper.get();
-                query_payment = self
-                    .pair_proxy(price_query_address)
-                    .get_safe_price_by_default_offset(
-                        stable_pair_address,
-                        EsdtTokenPayment::new(
-                            query_payment.token_identifier,
-                            0,
-                            query_payment.amount,
-                        ),
-                    )
-                    .execute_on_dest_context();
-            }
-
-            query_payment
-        };
-
-        if price.token_identifier == stable_token_id {
-            Result::Ok(price.amount)
-        } else {
-            Result::Err(())
-        }
-    }
-
     fn get_worth_of_price(
         &self,
-        desired_token_id: TokenIdentifier,
+        desired_token_id: &TokenIdentifier,
         stable_worth_amount: BigUint,
     ) -> Result<BigUint, ()> {
         let stable_token_id = self.stable_token_id().get();
-        if desired_token_id == stable_token_id {
+        if desired_token_id == &stable_token_id {
             return Result::Ok(stable_worth_amount);
         }
 
@@ -113,11 +62,11 @@ pub trait PairActionsModule: crate::common_storage::CommonStorageModule {
             )
             .execute_on_dest_context();
 
-        if desired_token_id == wegld_price.token_identifier {
+        if desired_token_id == &wegld_price.token_identifier {
             return Result::Ok(wegld_price.amount);
         }
 
-        let token_mapper = self.pair_address_for_token(&desired_token_id);
+        let token_mapper = self.pair_address_for_token(desired_token_id);
         if token_mapper.is_empty() {
             return Result::Err(());
         }
@@ -128,7 +77,7 @@ pub trait PairActionsModule: crate::common_storage::CommonStorageModule {
             .get_safe_price_by_default_offset(pair_address, wegld_price)
             .execute_on_dest_context();
 
-        if price.token_identifier == desired_token_id {
+        if &price.token_identifier == desired_token_id {
             Result::Ok(price.amount)
         } else {
             Result::Err(())

@@ -1,7 +1,6 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use common_structs::UniquePayments;
 use config::ProxyTrait as _;
 use subscription_fee::subtract_payments::Epoch;
 
@@ -67,19 +66,9 @@ pub trait SubscriberConfigModule {
     }
 
     #[only_owner]
-    #[endpoint(addTokenMaxFeeWithdrawPerWeek)]
-    fn add_token_max_fee_withdraw_per_week(
-        &self,
-        token_amount_pairs: MultiValueEncoded<MultiValue2<TokenIdentifier, BigUint>>,
-    ) {
-        for token_amount in token_amount_pairs.into_iter() {
-            let (token_id, amount) = token_amount.into_tuple();
-            require!(
-                token_id.is_valid_esdt_identifier(),
-                "Invalid token identifier"
-            );
-            self.max_fee_withdraw_per_week(&token_id).set(amount);
-        }
+    #[endpoint(addMaxFeeWithdrawPerWeek)]
+    fn add_max_fee_withdraw_per_week(&self, max_amount: BigUint) {
+        self.max_fee_withdraw_per_week().set(max_amount);
     }
 
     fn call_swap_to_mex(
@@ -165,11 +154,11 @@ pub trait SubscriberConfigModule {
 
     #[view(getTotalFees)]
     #[storage_mapper("totalFees")]
-    fn total_fees(&self) -> SingleValueMapper<UniquePayments<Self::Api>>;
+    fn total_fees(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getMaxFeeWithdrawPerWeek)]
     #[storage_mapper("maxFeeWithdrawPerWeek")]
-    fn max_fee_withdraw_per_week(&self, token_id: &TokenIdentifier) -> SingleValueMapper<BigUint>;
+    fn max_fee_withdraw_per_week(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getLastFeeWithdrawEpoch)]
     #[storage_mapper("lastFeeWithdrawEpoch")]

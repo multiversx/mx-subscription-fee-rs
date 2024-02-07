@@ -36,11 +36,21 @@ fn init_all<
 
     let b_mock_ref = RefCell::new(b_mock);
     let b_mock_rc = Rc::new(b_mock_ref);
-    let pair_setup = PairSetup::new(
+    let payment_pair_setup = PairSetup::new(
         b_mock_rc.clone(),
         pair_builder,
         &owner,
         FIRST_TOKEN_ID,
+        WEGLD_TOKEN_ID,
+        LP_TOKEN_ID,
+        1_000_000_000,
+        1_000_000_000,
+    );
+    let stable_pair_setup = PairSetup::new(
+        b_mock_rc.clone(),
+        pair_builder,
+        &owner,
+        WEGLD_TOKEN_ID,
         USDC_TOKEN_ID,
         LP_TOKEN_ID,
         1_000_000_000,
@@ -50,7 +60,7 @@ fn init_all<
         b_mock_rc.clone(),
         sub_builder,
         &owner,
-        pair_setup.pair_wrapper.address_ref(),
+        stable_pair_setup.pair_wrapper.address_ref(),
         vec![FIRST_TOKEN_ID.to_vec()],
     );
 
@@ -59,12 +69,22 @@ fn init_all<
         .execute_tx(&owner, &sub_sc.s_wrapper, &rust_biguint!(0), |sc| {
             sc.add_pair_address(
                 managed_token_id!(FIRST_TOKEN_ID),
-                managed_address!(pair_setup.pair_wrapper.address_ref()),
+                managed_address!(payment_pair_setup.pair_wrapper.address_ref()),
             );
         })
         .assert_ok();
 
-    (b_mock_rc, pair_setup, sub_sc)
+    b_mock_rc
+        .borrow_mut()
+        .execute_tx(&owner, &sub_sc.s_wrapper, &rust_biguint!(0), |sc| {
+            sc.add_pair_address(
+                managed_token_id!(WEGLD_TOKEN_ID),
+                managed_address!(stable_pair_setup.pair_wrapper.address_ref()),
+            );
+        })
+        .assert_ok();
+
+    (b_mock_rc, payment_pair_setup, sub_sc)
 }
 
 #[test]

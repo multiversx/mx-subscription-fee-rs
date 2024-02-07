@@ -3,7 +3,6 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use common_structs::UniquePayments;
 use multiversx_sc_modules::only_admin;
 use subscriber_config::MexActionsPercentages;
 use subscription_fee::subtract_payments::Epoch;
@@ -82,7 +81,6 @@ pub trait SubscriberContractMain:
         self.lock_period().set_if_empty(lock_period);
         self.fees_claim_address().set_if_empty(fees_claim_address);
         self.add_admin(self.blockchain().get_caller());
-        self.total_fees().set_if_empty(UniquePayments::new());
     }
 
     #[upgrade]
