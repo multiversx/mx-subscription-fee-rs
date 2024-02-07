@@ -44,10 +44,8 @@ pub trait FeesModule:
         );
 
         let min_stable_token_deposit_value = self.min_stable_token_deposit_value().get();
-        let min_payment_value_result = self.get_worth_of_price(
-            &payment.token_identifier,
-            min_stable_token_deposit_value.clone(),
-        );
+        let min_payment_value_result =
+            self.get_worth_of_price(&payment.token_identifier, min_stable_token_deposit_value);
         require!(
             min_payment_value_result.is_ok(),
             "Could not get payment value"
