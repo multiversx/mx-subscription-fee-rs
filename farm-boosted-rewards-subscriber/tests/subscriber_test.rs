@@ -710,10 +710,16 @@ fn mex_operation_with_claim_fees_test() {
 
     // Subscribe to standard service
     subscription_setup
-        .call_subscribe(&first_user, vec![(1, STANDARD_SERVICE)])
+        .call_subscribe(
+            &first_user,
+            vec![(1, STANDARD_SERVICE), (1, PREMIUM_SERVICE)],
+        )
         .assert_ok();
     subscription_setup
-        .call_subscribe(&second_user, vec![(1, STANDARD_SERVICE)])
+        .call_subscribe(
+            &second_user,
+            vec![(1, STANDARD_SERVICE), (1, PREMIUM_SERVICE)],
+        )
         .assert_ok();
 
     subscriber_setup
@@ -808,12 +814,20 @@ fn subtract_worth_of_stable_payment_test() {
     b_mock_rc.borrow_mut().set_block_epoch(2);
 
     subscriber_setup
-        .call_register_service(vec![(
-            Some(WEGLD_TOKEN_ID.to_vec()),
-            500,
-            true,
-            WEEKLY_SUBSCRIPTION_EPOCHS,
-        )])
+        .call_register_service(vec![
+            (
+                Some(WEGLD_TOKEN_ID.to_vec()),
+                500,
+                true,
+                WEEKLY_SUBSCRIPTION_EPOCHS,
+            ),
+            (
+                Some(WEGLD_TOKEN_ID.to_vec()),
+                100,
+                true,
+                WEEKLY_SUBSCRIPTION_EPOCHS,
+            ),
+        ])
         .assert_ok();
 
     subscription_setup
@@ -829,7 +843,7 @@ fn subtract_worth_of_stable_payment_test() {
         .assert_ok();
 
     subscription_setup
-        .call_subscribe(&user, vec![(1, STANDARD_SERVICE)])
+        .call_subscribe(&user, vec![(1, STANDARD_SERVICE), (1, PREMIUM_SERVICE)])
         .assert_ok();
 
     b_mock_rc.borrow().check_esdt_balance(

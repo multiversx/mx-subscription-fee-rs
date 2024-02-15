@@ -5,7 +5,9 @@ use multiversx_sc_modules::only_admin;
 
 use crate::{
     events,
-    subscriber_config::{self, MexActionsPercentages, SubscriptionUserType, EPOCHS_IN_WEEK},
+    subscriber_config::{
+        self, MexActionsPercentages, SubscriptionUserType, UserLastPayment, EPOCHS_IN_WEEK,
+    },
 };
 
 #[derive(ManagedVecItem, TypeAbi, TopEncode, TopDecode, PartialEq)]
@@ -34,6 +36,8 @@ pub trait ServiceModule:
     #[endpoint(subtractPayment)]
     fn subtract_payment_endpoint(&self, user_ids: MultiValueEncoded<AddressId>) {
         self.require_caller_is_admin();
+        let current_epoch = self.blockchain().get_block_epoch();
+        let payment_recurrency = EPOCHS_IN_WEEK;
         let standard_service_index = SubscriptionUserType::Normal as usize;
         let premium_service_index = SubscriptionUserType::Premium as usize;
         let energy_threshold = self.energy_threshold().get();
@@ -48,24 +52,34 @@ pub trait ServiceModule:
             if opt_user_address.is_none() {
                 continue;
             }
+
+            let user_last_payment_mapper = self.user_last_payment(user_id);
+            let mut user_last_payment = if user_last_payment_mapper.is_empty() {
+                UserLastPayment::default()
+            } else {
+                user_last_payment_mapper.get()
+            };
+
+            if current_epoch < user_last_payment.epoch + payment_recurrency
+                && user_last_payment.epoch > 0
+            {
+                continue;
+            }
+
             let user = opt_user_address.unwrap();
             let user_energy = self.get_energy_amount(&user);
 
-            if user_energy >= energy_threshold {
-                self.subtract_user_payment(
-                    fees_contract_address.clone(),
-                    premium_service_index,
-                    user_id,
-                );
+            let user_service_index = if user_energy >= energy_threshold {
                 premium_processed_user_ids.push(user_id);
+                premium_service_index
             } else {
-                self.subtract_user_payment(
-                    fees_contract_address.clone(),
-                    standard_service_index,
-                    user_id,
-                );
                 standard_processed_user_ids.push(user_id);
+                standard_service_index
             };
+
+            self.subtract_user_payment(fees_contract_address.clone(), user_service_index, user_id);
+            user_last_payment = UserLastPayment::new(user_service_index, current_epoch);
+            user_last_payment_mapper.set(user_last_payment);
         }
 
         if !premium_processed_user_ids.is_empty() {
@@ -149,6 +163,15 @@ pub trait ServiceModule:
                 continue;
             }
 
+            let user_last_payment_mapper = self.user_last_payment(user_id);
+            if user_last_payment_mapper.is_empty() {
+                continue;
+            }
+            let user_last_payment = user_last_payment_mapper.get();
+            if user_last_payment.service_index != service_index {
+                continue;
+            }
+
             let fee = fee_mapper.take();
             let token_id = fee.fees.token_identifier;
             require!(token_id == wegld_token_id, "Invalid fee token id");
@@ -171,7 +194,7 @@ pub trait ServiceModule:
             return;
         }
 
-        let simple_lock_address = self.simple_lock_address().get();
+        let energy_factory_address = self.energy_factory_address().get();
         let lock_period = self.lock_period().get();
 
         // Call lock for each user to properly update their energy
@@ -188,7 +211,7 @@ pub trait ServiceModule:
 
             if user_amount > 0 {
                 self.call_lock_tokens(
-                    simple_lock_address.clone(),
+                    energy_factory_address.clone(),
                     EsdtTokenPayment::new(
                         total_tokens_to_lock.token_identifier.clone(),
                         0,

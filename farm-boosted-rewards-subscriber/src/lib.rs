@@ -33,7 +33,7 @@ pub trait SubscriberContractMain:
         wegld_token_id: TokenIdentifier,
         normal_user_percentages: MexActionsPercentages,
         premium_user_percentages: MexActionsPercentages,
-        simple_lock_address: ManagedAddress,
+        energy_factory_address: ManagedAddress,
         mex_pair_address: ManagedAddress,
         lock_period: Epoch,
         fees_claim_address: ManagedAddress,
@@ -48,7 +48,7 @@ pub trait SubscriberContractMain:
             "Invalid percentages"
         );
         require!(
-            self.blockchain().is_smart_contract(&simple_lock_address),
+            self.blockchain().is_smart_contract(&energy_factory_address),
             "Invalid address"
         );
         require!(
@@ -76,7 +76,8 @@ pub trait SubscriberContractMain:
             .set_if_empty(normal_user_percentages);
         self.premium_user_percentage()
             .set_if_empty(premium_user_percentages);
-        self.simple_lock_address().set_if_empty(simple_lock_address);
+        self.energy_factory_address()
+            .set_if_empty(energy_factory_address);
         self.mex_pair().set_if_empty(mex_pair_address);
         self.lock_period().set_if_empty(lock_period);
         self.fees_claim_address().set_if_empty(fees_claim_address);

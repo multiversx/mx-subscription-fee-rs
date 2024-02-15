@@ -8,6 +8,31 @@ pub type Percentage = u32;
 pub const TOTAL_PERCENTAGE: Percentage = 10_000;
 pub const EPOCHS_IN_WEEK: u64 = 7;
 
+#[derive(TypeAbi, TopEncode, TopDecode)]
+pub struct UserLastPayment {
+    pub service_index: usize,
+    pub epoch: Epoch,
+}
+
+impl Default for UserLastPayment {
+    #[inline]
+    fn default() -> Self {
+        Self {
+            service_index: 0,
+            epoch: 0,
+        }
+    }
+}
+
+impl UserLastPayment {
+    pub fn new(service_index: usize, epoch: Epoch) -> Self {
+        UserLastPayment {
+            service_index,
+            epoch,
+        }
+    }
+}
+
 #[derive(TypeAbi, TopEncode, TopDecode, PartialEq)]
 pub enum SubscriptionUserType {
     Normal,
@@ -87,12 +112,12 @@ pub trait SubscriberConfigModule {
 
     fn call_lock_tokens(
         &self,
-        simple_lock_address: ManagedAddress,
+        energy_factory_address: ManagedAddress,
         input_tokens: EsdtTokenPayment,
         lock_epochs: Epoch,
         destination: ManagedAddress,
     ) -> EsdtTokenPayment {
-        self.simple_lock_proxy(simple_lock_address)
+        self.energy_factory_proxy(energy_factory_address)
             .lock_tokens_endpoint(lock_epochs, destination)
             .with_esdt_transfer(input_tokens)
             .execute_on_dest_context()
@@ -122,7 +147,7 @@ pub trait SubscriberConfigModule {
     fn other_pair_proxy(&self, sc_address: ManagedAddress) -> pair::Proxy<Self::Api>;
 
     #[proxy]
-    fn simple_lock_proxy(&self, sc_address: ManagedAddress) -> energy_factory::Proxy<Self::Api>;
+    fn energy_factory_proxy(&self, sc_address: ManagedAddress) -> energy_factory::Proxy<Self::Api>;
 
     #[proxy]
     fn farm_proxy_obj(
@@ -130,15 +155,15 @@ pub trait SubscriberConfigModule {
         sc_address: ManagedAddress,
     ) -> farm_with_locked_rewards::Proxy<Self::Api>;
 
+    #[view(getUserLastPayment)]
+    #[storage_mapper("user_last_payment")]
+    fn user_last_payment(&self, user_id: AddressId) -> SingleValueMapper<UserLastPayment>;
+
     #[storage_mapper("mexTokenId")]
     fn mex_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 
     #[storage_mapper("mexPair")]
     fn mex_pair(&self) -> SingleValueMapper<ManagedAddress>;
-
-    #[view(getSimpleLockAddress)]
-    #[storage_mapper("simpleLockAddress")]
-    fn simple_lock_address(&self) -> SingleValueMapper<ManagedAddress>;
 
     #[view(getLockPeriod)]
     #[storage_mapper("lockPeriod")]
