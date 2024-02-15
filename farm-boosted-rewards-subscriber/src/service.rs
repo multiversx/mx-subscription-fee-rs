@@ -3,11 +3,12 @@ multiversx_sc::derive_imports!();
 
 use multiversx_sc_modules::only_admin;
 
+pub const STANDARD_SUBSCRIPTION_INDEX: usize = 0;
+pub const PREMIUM_SUBSCRIPTION_INDEX: usize = 1;
+
 use crate::{
     events,
-    subscriber_config::{
-        self, MexActionsPercentages, SubscriptionUserType, UserLastPayment, EPOCHS_IN_WEEK,
-    },
+    subscriber_config::{self, MexActionsPercentages, UserLastPayment, EPOCHS_IN_WEEK},
 };
 
 #[derive(ManagedVecItem, TypeAbi, TopEncode, TopDecode, PartialEq)]
@@ -38,8 +39,8 @@ pub trait ServiceModule:
         self.require_caller_is_admin();
         let current_epoch = self.blockchain().get_block_epoch();
         let payment_recurrency = EPOCHS_IN_WEEK;
-        let standard_service_index = SubscriptionUserType::Normal as usize;
-        let premium_service_index = SubscriptionUserType::Premium as usize;
+        let standard_service_index = STANDARD_SUBSCRIPTION_INDEX;
+        let premium_service_index = PREMIUM_SUBSCRIPTION_INDEX;
         let energy_threshold = self.energy_threshold().get();
         let fees_contract_address = self.fees_contract_address().get();
         let mut standard_processed_user_ids = ManagedVec::new();
@@ -66,7 +67,7 @@ pub trait ServiceModule:
                 continue;
             }
 
-            let user = opt_user_address.unwrap();
+            let user = unsafe { opt_user_address.unwrap_unchecked() };
             let user_energy = self.get_energy_amount(&user);
 
             let user_service_index = if user_energy >= energy_threshold {
@@ -78,7 +79,10 @@ pub trait ServiceModule:
             };
 
             self.subtract_user_payment(fees_contract_address.clone(), user_service_index, user_id);
-            user_last_payment = UserLastPayment::new(user_service_index, current_epoch);
+            user_last_payment = UserLastPayment {
+                service_index: user_service_index,
+                epoch: current_epoch,
+            };
             user_last_payment_mapper.set(user_last_payment);
         }
 
@@ -136,9 +140,9 @@ pub trait ServiceModule:
         user_ids: MultiValueEncoded<AddressId>,
     ) {
         self.require_caller_is_admin();
-        let actions_percentage = if service_index == SubscriptionUserType::Normal as usize {
+        let actions_percentage = if service_index == STANDARD_SUBSCRIPTION_INDEX {
             self.normal_user_percentage().get()
-        } else if service_index == SubscriptionUserType::Premium as usize {
+        } else if service_index == PREMIUM_SUBSCRIPTION_INDEX {
             self.premium_user_percentage().get()
         } else {
             sc_panic!("Invalid service index")

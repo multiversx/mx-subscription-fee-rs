@@ -14,21 +14,6 @@ pub struct UserLastPayment {
     pub epoch: Epoch,
 }
 
-impl UserLastPayment {
-    pub fn new(service_index: usize, epoch: Epoch) -> Self {
-        UserLastPayment {
-            service_index,
-            epoch,
-        }
-    }
-}
-
-#[derive(TypeAbi, TopEncode, TopDecode, PartialEq)]
-pub enum SubscriptionUserType {
-    Normal,
-    Premium,
-}
-
 #[derive(TypeAbi, TopEncode, TopDecode)]
 pub struct MexActionsPercentages {
     pub lock: Percentage,
