@@ -8,20 +8,10 @@ pub type Percentage = u32;
 pub const TOTAL_PERCENTAGE: Percentage = 10_000;
 pub const EPOCHS_IN_WEEK: u64 = 7;
 
-#[derive(TypeAbi, TopEncode, TopDecode)]
+#[derive(Default, TypeAbi, TopEncode, TopDecode)]
 pub struct UserLastPayment {
     pub service_index: usize,
     pub epoch: Epoch,
-}
-
-impl Default for UserLastPayment {
-    #[inline]
-    fn default() -> Self {
-        Self {
-            service_index: 0,
-            epoch: 0,
-        }
-    }
 }
 
 impl UserLastPayment {
