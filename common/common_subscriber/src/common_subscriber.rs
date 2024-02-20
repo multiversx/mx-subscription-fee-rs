@@ -63,13 +63,13 @@ pub trait CommonSubscriberModule {
         fees_contract_address: ManagedAddress,
         service_index: usize,
         user_id: AddressId,
-    ) {
+    ) -> ScResult<EsdtTokenPayment, ()> {
         let fees_mapper = self.user_fees(service_index, user_id);
         require!(fees_mapper.is_empty(), "User last fees not processed yet");
 
         let subtract_result =
             self.call_subtract_payment(fees_contract_address, service_index, user_id);
-        if let ScResult::Ok(fees) = subtract_result {
+        if let ScResult::Ok(fees) = subtract_result.clone() {
             let current_epoch = self.blockchain().get_block_epoch();
             let user_fees = UserFees {
                 fees,
@@ -78,6 +78,8 @@ pub trait CommonSubscriberModule {
 
             fees_mapper.set(user_fees);
         }
+
+        subtract_result
     }
 
     fn call_subtract_payment(

@@ -5,6 +5,7 @@ use multiversx_sc_modules::only_admin;
 
 pub const STANDARD_SUBSCRIPTION_INDEX: usize = 0;
 pub const PREMIUM_SUBSCRIPTION_INDEX: usize = 1;
+pub const PAYMENT_RECURRENCY: u64 = 30;
 
 use crate::{
     events,
@@ -38,7 +39,7 @@ pub trait ServiceModule:
     fn subtract_payment_endpoint(&self, user_ids: MultiValueEncoded<AddressId>) {
         self.require_caller_is_admin();
         let current_epoch = self.blockchain().get_block_epoch();
-        let payment_recurrency = EPOCHS_IN_WEEK;
+        let payment_recurrency = PAYMENT_RECURRENCY;
         let standard_service_index = STANDARD_SUBSCRIPTION_INDEX;
         let premium_service_index = PREMIUM_SUBSCRIPTION_INDEX;
         let energy_threshold = self.energy_threshold().get();
@@ -78,12 +79,19 @@ pub trait ServiceModule:
                 standard_service_index
             };
 
-            self.subtract_user_payment(fees_contract_address.clone(), user_service_index, user_id);
-            user_last_payment = UserLastPayment {
-                service_index: user_service_index,
-                epoch: current_epoch,
-            };
-            user_last_payment_mapper.set(user_last_payment);
+            let subtract_user_payment_result = self.subtract_user_payment(
+                fees_contract_address.clone(),
+                user_service_index,
+                user_id,
+            );
+
+            if !subtract_user_payment_result.is_err() {
+                user_last_payment = UserLastPayment {
+                    service_index: user_service_index,
+                    epoch: current_epoch,
+                };
+                user_last_payment_mapper.set(user_last_payment);
+            }
         }
 
         if !premium_processed_user_ids.is_empty() {
