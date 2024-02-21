@@ -43,14 +43,17 @@ pub trait FeesModule:
             "Invalid payment token"
         );
 
-        let payment_value_result =
-            self.get_price(payment.token_identifier.clone(), payment.amount.clone());
-        require!(payment_value_result.is_ok(), "Could not get payment value");
-
-        let payment_value = unsafe { payment_value_result.unwrap_unchecked() };
         let min_stable_token_deposit_value = self.min_stable_token_deposit_value().get();
+        let min_payment_value_result =
+            self.get_worth_of_price(&payment.token_identifier, min_stable_token_deposit_value);
         require!(
-            payment_value >= min_stable_token_deposit_value,
+            min_payment_value_result.is_ok(),
+            "Could not get payment value"
+        );
+        let min_payment_value = unsafe { min_payment_value_result.unwrap_unchecked() };
+
+        require!(
+            payment.amount >= min_payment_value,
             "Payment value is lesser than the minimum accepted"
         );
 

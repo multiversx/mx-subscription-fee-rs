@@ -7,13 +7,14 @@ use multiversx_sc::{
     types::{Address, MultiValueEncoded},
 };
 use multiversx_sc_scenario::{
-    managed_address, managed_token_id, rust_biguint,
+    managed_address, managed_biguint, managed_token_id, rust_biguint,
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper, TxResult},
     DebugApi,
 };
 use subscription_fee::{fees::FeesModule, service::ServiceModule, SubscriptionFee};
 
 use crate::{USDC_TOKEN_ID, WEGLD_TOKEN_ID};
+pub const MIN_USER_DEPOSIT_VALUE: u64 = 1_000_000;
 
 pub struct SubscriptionSetup<SubscriptionObjBuilder>
 where
@@ -56,6 +57,7 @@ where
                     managed_token_id!(USDC_TOKEN_ID),
                     managed_token_id!(WEGLD_TOKEN_ID),
                     managed_address!(pair_address),
+                    managed_biguint!(MIN_USER_DEPOSIT_VALUE),
                     args,
                 );
             })

@@ -5,8 +5,10 @@ use std::{cell::RefCell, rc::Rc};
 use common_subscriber::CommonSubscriberModule;
 use energy_query::EnergyQueryModule;
 use farm_boosted_rewards_subscriber::{
-    claim_farm_boosted::ClaimFarmBoostedRewardsModule, service::ServiceModule,
-    subscriber_config::MexActionsPercentages, SubscriberContractMain,
+    claim_farm_boosted::ClaimFarmBoostedRewardsModule,
+    service::ServiceModule,
+    subscriber_config::{MexActionsPercentages, SubscriberConfigModule},
+    SubscriberContractMain,
 };
 use multiversx_sc::{
     codec::multi_types::MultiValue2,
@@ -156,11 +158,7 @@ where
         farm_id
     }
 
-    pub fn call_subtract_payment(
-        &mut self,
-        service_index: usize,
-        user_ids_vec: Vec<AddressId>,
-    ) -> TxResult {
+    pub fn call_subtract_payment(&mut self, user_ids_vec: Vec<AddressId>) -> TxResult {
         self.b_mock.borrow_mut().execute_tx(
             &self.owner_addr,
             &self.sub_wrapper,
@@ -170,14 +168,13 @@ where
                 for user_id in user_ids_vec {
                     user_ids.push(user_id);
                 }
-                sc.subtract_payment_endpoint(service_index, user_ids);
+                sc.subtract_payment_endpoint(user_ids);
             },
         )
     }
 
     pub fn call_perform_claim_boosted(
         &mut self,
-        service_index: usize,
         user_id: AddressId,
         farms_list: Vec<AddressId>,
     ) -> TxResult {
@@ -190,10 +187,7 @@ where
                 let user_farms = ManagedVec::from(farms_list);
                 user_farms_pairs_to_claim.push(MultiValue2::from((user_id, user_farms)));
 
-                sc.perform_claim_rewards_operations_endpoint(
-                    service_index,
-                    user_farms_pairs_to_claim,
-                );
+                sc.perform_claim_rewards_operations_endpoint(user_farms_pairs_to_claim);
             },
         )
     }
@@ -218,14 +212,25 @@ where
         )
     }
 
-    pub fn call_claim_fees(&mut self, expected_output_payments_no: usize) -> TxResult {
+    pub fn call_add_max_fee_withdraw_per_week(&mut self, max_amount_per_week: u64) -> TxResult {
+        self.b_mock.borrow_mut().execute_tx(
+            &self.owner_addr,
+            &self.sub_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.add_max_fee_withdraw_per_week(managed_biguint!(max_amount_per_week));
+            },
+        )
+    }
+
+    pub fn call_claim_fees(&mut self, expected_amount: u64) -> TxResult {
         self.b_mock.borrow_mut().execute_tx(
             &self.owner_addr,
             &self.sub_wrapper,
             &rust_biguint!(0),
             |sc| {
                 let result = sc.claim_fees();
-                assert_eq!(result.len(), expected_output_payments_no);
+                assert_eq!(result, managed_biguint!(expected_amount));
             },
         )
     }

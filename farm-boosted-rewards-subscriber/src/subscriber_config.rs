@@ -1,7 +1,6 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use common_structs::UniquePayments;
 use config::ProxyTrait as _;
 use subscription_fee::subtract_payments::Epoch;
 
@@ -9,10 +8,10 @@ pub type Percentage = u32;
 pub const TOTAL_PERCENTAGE: Percentage = 10_000;
 pub const EPOCHS_IN_WEEK: u64 = 7;
 
-#[derive(TypeAbi, TopEncode, TopDecode, PartialEq)]
-pub enum SubscriptionUserType {
-    Normal,
-    Premium,
+#[derive(Default, TypeAbi, TopEncode, TopDecode)]
+pub struct UserLastPayment {
+    pub service_index: usize,
+    pub epoch: Epoch,
 }
 
 #[derive(TypeAbi, TopEncode, TopDecode)]
@@ -67,19 +66,9 @@ pub trait SubscriberConfigModule {
     }
 
     #[only_owner]
-    #[endpoint(addTokenMaxFeeWithdrawPerWeek)]
-    fn add_token_max_fee_withdraw_per_week(
-        &self,
-        token_amount_pairs: MultiValueEncoded<MultiValue2<TokenIdentifier, BigUint>>,
-    ) {
-        for token_amount in token_amount_pairs.into_iter() {
-            let (token_id, amount) = token_amount.into_tuple();
-            require!(
-                token_id.is_valid_esdt_identifier(),
-                "Invalid token identifier"
-            );
-            self.max_fee_withdraw_per_week(&token_id).set(amount);
-        }
+    #[endpoint(addMaxFeeWithdrawPerWeek)]
+    fn add_max_fee_withdraw_per_week(&self, max_amount: BigUint) {
+        self.max_fee_withdraw_per_week().set(max_amount);
     }
 
     fn call_swap_to_mex(
@@ -98,12 +87,12 @@ pub trait SubscriberConfigModule {
 
     fn call_lock_tokens(
         &self,
-        simple_lock_address: ManagedAddress,
+        energy_factory_address: ManagedAddress,
         input_tokens: EsdtTokenPayment,
         lock_epochs: Epoch,
         destination: ManagedAddress,
     ) -> EsdtTokenPayment {
-        self.simple_lock_proxy(simple_lock_address)
+        self.energy_factory_proxy(energy_factory_address)
             .lock_tokens_endpoint(lock_epochs, destination)
             .with_esdt_transfer(input_tokens)
             .execute_on_dest_context()
@@ -133,7 +122,7 @@ pub trait SubscriberConfigModule {
     fn other_pair_proxy(&self, sc_address: ManagedAddress) -> pair::Proxy<Self::Api>;
 
     #[proxy]
-    fn simple_lock_proxy(&self, sc_address: ManagedAddress) -> energy_factory::Proxy<Self::Api>;
+    fn energy_factory_proxy(&self, sc_address: ManagedAddress) -> energy_factory::Proxy<Self::Api>;
 
     #[proxy]
     fn farm_proxy_obj(
@@ -141,15 +130,15 @@ pub trait SubscriberConfigModule {
         sc_address: ManagedAddress,
     ) -> farm_with_locked_rewards::Proxy<Self::Api>;
 
+    #[view(getUserLastPayment)]
+    #[storage_mapper("user_last_payment")]
+    fn user_last_payment(&self, user_id: AddressId) -> SingleValueMapper<UserLastPayment>;
+
     #[storage_mapper("mexTokenId")]
     fn mex_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 
     #[storage_mapper("mexPair")]
     fn mex_pair(&self) -> SingleValueMapper<ManagedAddress>;
-
-    #[view(getSimpleLockAddress)]
-    #[storage_mapper("simpleLockAddress")]
-    fn simple_lock_address(&self) -> SingleValueMapper<ManagedAddress>;
 
     #[view(getLockPeriod)]
     #[storage_mapper("lockPeriod")]
@@ -165,11 +154,11 @@ pub trait SubscriberConfigModule {
 
     #[view(getTotalFees)]
     #[storage_mapper("totalFees")]
-    fn total_fees(&self) -> SingleValueMapper<UniquePayments<Self::Api>>;
+    fn total_fees(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getMaxFeeWithdrawPerWeek)]
     #[storage_mapper("maxFeeWithdrawPerWeek")]
-    fn max_fee_withdraw_per_week(&self, token_id: &TokenIdentifier) -> SingleValueMapper<BigUint>;
+    fn max_fee_withdraw_per_week(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getLastFeeWithdrawEpoch)]
     #[storage_mapper("lastFeeWithdrawEpoch")]

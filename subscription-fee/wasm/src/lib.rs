@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           20
+// Endpoints:                           21
 // Async Callback (empty):               1
-// Total number of exported functions:  22
+// Total number of exported functions:  23
 
 #![no_std]
 
@@ -22,6 +22,7 @@ multiversx_sc_wasm_adapter::endpoints! {
     subscription_fee
     (
         init => init
+        upgrade => upgrade
         addAcceptedFeesTokens => add_accepted_fees_tokens
         setMinDepositValue => set_min_deposit_value
         deposit => deposit
